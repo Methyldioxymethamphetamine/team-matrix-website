@@ -262,58 +262,63 @@ export default function TubeLightLogo() {
         let localProgress = 0;
         let opacity = 0;
 
-        // Sequence Stage 1: drone.webm (0.00 -> 0.40)
+        // Sequence Stage 1: drone.webm (0.00 -> 0.64)
         // Stage 0 (0.00 -> 0.12): About Section taking over screen; drone canvas hidden (opacity = 0)
         // Stage 0.5 (0.12 -> 0.18): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
-        // Stage 1 (0.18 -> 0.38): drone.webm scroll animation plays (0% to 100% of seq1Images)
-        // Stage 1.5 (0.38 -> 0.42): Hold / fade drone.webm last frame
-        if (P < 0.42) {
+        // Stage 1 (0.18 -> 0.36): drone.webm scroll animation plays (0% to 100% of seq1Images)
+        // Stage 1.5 (0.36 -> 0.62): Hold drone.webm last frame static from 0.36 to 0.62
+        // Stage 1.8 (0.62 -> 0.64): Smooth fade out of drone.webm last frame
+        if (P < 0.64) {
           activeSet = seq1Images;
           if (P < 0.12) {
-            opacity = 0; // Completely hidden while About Team Matrix box takes over screen (3 scroll buffer)
+            opacity = 0; // Completely hidden while About Team Matrix box takes over screen
             localProgress = 0;
           } else if (P < 0.18) {
             opacity = (P - 0.12) / 0.06; // Smooth fade in of drone canvas as About box fades out
             localProgress = 0;
-          } else if (P < 0.38) {
+          } else if (P < 0.36) {
             opacity = 1;
-            localProgress = (P - 0.18) / 0.20; // Plays 100% of drone.webm
+            localProgress = (P - 0.18) / 0.18; // Plays 100% of drone.webm
+          } else if (P < 0.62) {
+            // Hold last frame static from 0.36 to 0.62
+            opacity = 1;
+            localProgress = 1;
           } else {
             // Fade out drone.webm
-            opacity = (0.42 - P) / 0.04;
+            opacity = (0.64 - P) / 0.02;
             localProgress = 1;
           }
         }
-        // Sequence Stage 2: drone1.webm (0.42 -> 0.62) - Plays explosion to 100%
-        else if (P < 0.62) {
+        // Sequence Stage 2: drone1.webm (0.64 -> 0.76) - Plays explosion to 100%
+        else if (P < 0.76) {
           activeSet = seq2Images;
-          if (P < 0.44) {
-            opacity = (P - 0.42) / 0.02; // Fade in drone1
+          if (P < 0.66) {
+            opacity = (P - 0.64) / 0.02; // Fade in drone1
             localProgress = 0;
           } else {
             opacity = 1;
-            localProgress = (P - 0.44) / 0.18; // Plays 100% of drone1.webm to full exploded view
+            localProgress = (P - 0.66) / 0.10; // Plays 100% of drone1.webm to full exploded view
           }
         }
-        // Sequence Stage 2.5: PAUSED EXPLODED FRAME (0.62 -> 0.80) - PAUSED SCROLLS FOR CALLOUTS
-        else if (P < 0.80) {
+        // Sequence Stage 2.5: PAUSED EXPLODED FRAME (0.76 -> 0.86) - PAUSED SCROLLS FOR CALLOUTS
+        else if (P < 0.86) {
           activeSet = seq2Images;
           opacity = 1;
           localProgress = 1; // Holds the fully exploded 3D frame static
         }
-        // Sequence Stage 3: drone_reversed.webm (0.80 -> 1.00) - Collapses assembly back down
+        // Sequence Stage 3: drone_reversed.webm (0.86 -> 1.00) - Collapses assembly back down
         else {
           activeSet = seq3Images;
-          if (P < 0.94) {
+          if (P < 0.96) {
             opacity = 1;
-            localProgress = (P - 0.80) / 0.14; // Plays 100% of drone_reversed.webm
-          } else if (P < 0.98) {
+            localProgress = (P - 0.86) / 0.10; // Plays 100% of drone_reversed.webm
+          } else if (P < 0.99) {
             // Hold LAST frame of drone_reversed.webm
             opacity = 1;
             localProgress = 1;
           } else {
             // Final Fade Out
-            opacity = (1.00 - P) / 0.02;
+            opacity = (1.00 - P) / 0.01;
             localProgress = 1;
           }
         }
@@ -367,8 +372,8 @@ export default function TubeLightLogo() {
     };
   }, [seq1Images, seq2Images, seq3Images]);
 
-  const isExplodedCalloutsVisible = scrollProgress >= 0.60 && scrollProgress <= 0.82;
-  const pauseProgress = Math.min(1, Math.max(0, (scrollProgress - 0.62) / 0.18));
+  const isExplodedCalloutsVisible = scrollProgress >= 0.74 && scrollProgress <= 0.88;
+  const pauseProgress = Math.min(1, Math.max(0, (scrollProgress - 0.76) / 0.10));
 
   let aboutOpacity = 0;
   if (isMovedToNav) {
@@ -673,7 +678,7 @@ export default function TubeLightLogo() {
       {/* BLUEPRINT SVG CALLOUT LINES & LABELS OVERLAY */}
       <ExplodedCallouts pauseProgress={pauseProgress} isVisible={isExplodedCalloutsVisible} />
 
-      {/* TOP GRADUAL BACKDROP BLUR OVERLAY (BELOW NAV & LOGO AT Z-30) */}
+      {/* TOP GRADUAL BACKDROP BLUR OVERLAY (Z-35: ABOVE CONTENT AT Z-25, BELOW NAV AT Z-40) */}
       <GradualBlur
         target="page"
         position="top"
@@ -682,7 +687,7 @@ export default function TubeLightLogo() {
         divCount={8}
         curve="bezier"
         exponential={true}
-        zIndex={30}
+        zIndex={35}
       />
 
       {/* BOTTOM GRADUAL BACKDROP BLUR OVERLAY */}
@@ -720,7 +725,7 @@ export default function TubeLightLogo() {
       <div style={{ height: "1100vh" }} aria-hidden="true" />
 
       {/* ── OUR STORIES ── */}
-      <div style={{ position: "relative", zIndex: 30 }}>
+      <div style={{ position: "relative", zIndex: 25 }}>
         <section
           id="stories"
           aria-label="Our Stories"
@@ -879,7 +884,7 @@ export default function TubeLightLogo() {
       </div>
 
       {/* ── MEMBERS ── */}
-      <div id="members" style={{ position: "relative", zIndex: 30 }}>
+      <div id="members" style={{ position: "relative", zIndex: 25 }}>
         <MembersSection visible={membersVisible} />
       </div>
 

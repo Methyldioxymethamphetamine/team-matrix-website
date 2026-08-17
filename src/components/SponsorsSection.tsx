@@ -20,7 +20,7 @@ export default function SponsorsSection() {
     <section
       id="sponsors"
       aria-label="Our Sponsors"
-      className="relative z-30 w-full py-16 bg-[#0a0a0f] border-t border-red-500/10 overflow-hidden"
+      className="relative z-25 w-full py-16 bg-[#0a0a0f] border-t border-red-500/10 overflow-hidden"
     >
       {/* Ambient background glow */}
       <div
