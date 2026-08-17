@@ -673,6 +673,18 @@ export default function TubeLightLogo() {
       {/* BLUEPRINT SVG CALLOUT LINES & LABELS OVERLAY */}
       <ExplodedCallouts pauseProgress={pauseProgress} isVisible={isExplodedCalloutsVisible} />
 
+      {/* TOP GRADUAL BACKDROP BLUR OVERLAY (BELOW NAV) */}
+      <GradualBlur
+        target="page"
+        position="top"
+        height="5.5rem"
+        strength={3}
+        divCount={8}
+        curve="bezier"
+        exponential={true}
+        zIndex={15}
+      />
+
       {/* BOTTOM GRADUAL BACKDROP BLUR OVERLAY */}
       <GradualBlur
         target="page"

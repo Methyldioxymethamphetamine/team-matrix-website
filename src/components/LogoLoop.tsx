@@ -58,7 +58,7 @@ export default function LogoLoop({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        height: isHorizontal ? `${logoHeight + 32}px` : "100%",
+        height: isHorizontal ? `${logoHeight + 40}px` : "100%",
       }}
     >
       {/* Edge Fade Overlay */}

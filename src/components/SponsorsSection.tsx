@@ -55,10 +55,10 @@ export default function SponsorsSection() {
       <div className="relative w-full py-4">
         <LogoLoop
           logos={sponsorLogos}
-          speed={70}
+          speed={65}
           direction="left"
-          logoHeight={130}
-          gap={48}
+          logoHeight={165}
+          gap={52}
           hoverSpeed={0}
           scaleOnHover={true}
           fadeOut={true}
