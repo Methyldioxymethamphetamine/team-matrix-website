@@ -651,11 +651,11 @@ export default function TubeLightLogo() {
             : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
             }`}
         >
-          <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#0d0d14]/85 backdrop-blur-xl border border-white/[0.07] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-[11px] sm:text-xs tracking-[0.22em]">
+          <div className="flex items-baseline justify-center gap-2 px-4 py-1.5 rounded-full bg-[#0d0d14]/85 backdrop-blur-xl border border-white/[0.07] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm tracking-[0.2em] leading-none">
               TEAM
             </span>
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-xs sm:text-sm tracking-[0.1em] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-xs sm:text-sm tracking-[0.12em] leading-none drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]">
               MATRIX
             </span>
           </div>
@@ -673,7 +673,7 @@ export default function TubeLightLogo() {
       {/* BLUEPRINT SVG CALLOUT LINES & LABELS OVERLAY */}
       <ExplodedCallouts pauseProgress={pauseProgress} isVisible={isExplodedCalloutsVisible} />
 
-      {/* TOP GRADUAL BACKDROP BLUR OVERLAY (BELOW NAV) */}
+      {/* TOP GRADUAL BACKDROP BLUR OVERLAY (BELOW NAV & LOGO AT Z-30) */}
       <GradualBlur
         target="page"
         position="top"
@@ -682,7 +682,7 @@ export default function TubeLightLogo() {
         divCount={8}
         curve="bezier"
         exponential={true}
-        zIndex={15}
+        zIndex={30}
       />
 
       {/* BOTTOM GRADUAL BACKDROP BLUR OVERLAY */}
