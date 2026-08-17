@@ -369,24 +369,45 @@ export default function TubeLightLogo() {
       {/* Background Radial Glow */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.14)_0%,transparent_65%)] pointer-events-none z-0" />
 
-      {/* ACRYLIC BLUR NAVIGATION BAR AT TOP OF PAGE */}
+      {/* THREE-ISLAND NAV: Left | (Logo center via logoGroupRef) | Right */}
       <header
-        className={`fixed top-0 left-0 right-0 h-16 sm:h-20 bg-slate-950/60 backdrop-blur-2xl border-b border-red-500/25 z-40 transition-all duration-700 ${isMovedToNav ? "opacity-100 translate-y-0 shadow-[0_4px_30px_rgba(239,68,68,0.2)]" : "opacity-0 -translate-y-full pointer-events-none"
-          }`}
+        className={`fixed top-4 left-0 right-0 z-40 flex items-center justify-between px-5 sm:px-8 pointer-events-none transition-all duration-700 ${isMovedToNav ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
       >
-        <div className="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
-          <div className="text-xs font-mono text-red-500/80 tracking-widest flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="font-bold">TEAM MATRIX // SYSTEM</span>
-          </div>
+        {/* LEFT ISLAND: About Work Drones */}
+        <nav className="pointer-events-auto flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          {["About", "Work", "Drones"].map((label) => (
+            <a
+              key={label}
+              href={`#${label.toLowerCase()}`}
+              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
 
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline text-xs font-mono text-slate-400">TELEMETRY: ONLINE</span>
-            <button className="px-4 py-1.5 rounded-full border border-red-500/40 bg-red-950/30 text-red-300 text-xs font-mono tracking-wider transition-all hover:bg-red-900/50 hover:scale-105 active:scale-95">
-              EXPLORE
-            </button>
-          </div>
-        </div>
+        {/* CENTER SPACER — logo is positioned by logoGroupRef */}
+        <div className="flex-1" />
+
+        {/* RIGHT ISLAND: FAQ Contact Join */}
+        <nav className="pointer-events-auto flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          {["FAQ", "Contact"].map((label) => (
+            <a
+              key={label}
+              href={`#${label.toLowerCase()}`}
+              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
+            >
+              {label}
+            </a>
+          ))}
+          <div className="w-px h-4 bg-white/10 mx-1" />
+          <a
+            href="#join"
+            className="px-4 py-1.5 rounded-full text-sm font-sans font-semibold text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_18px_rgba(239,68,68,0.3)] active:scale-95 whitespace-nowrap"
+          >
+            Join
+          </a>
+        </nav>
       </header>
 
       {/* LOGO & TEXT ANIMATION CONTAINER */}
@@ -453,16 +474,17 @@ export default function TubeLightLogo() {
         {/* INITIAL PAGE LOADING INDICATOR BELOW LOGO */}
         {!isMovedToNav && (
           <div
-            className={`fixed left-1/2 -translate-x-1/2 top-[62%] sm:top-[65%] flex flex-col items-center justify-center space-y-2.5 pointer-events-none z-50 transition-opacity duration-700 ${
+            className={`fixed left-1/2 -translate-x-1/2 top-[70%] sm:top-[74%] flex flex-col items-center justify-center space-y-3.5 pointer-events-none z-50 transition-opacity duration-700 ${
               isAssetsLoaded && introFinished ? "opacity-0" : "opacity-100"
             }`}
           >
-            <div className="text-center font-mono text-xs sm:text-sm tracking-[0.35em] text-red-500 font-bold uppercase animate-pulse drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]">
+            <div className="text-center font-mono text-xs sm:text-sm tracking-[0.4em] text-red-500 font-bold uppercase animate-pulse drop-shadow-[0_0_14px_rgba(239,68,68,0.9)]">
               loading {Math.round(loadProgress)}%
             </div>
-            <div className="w-48 sm:w-60 h-1 bg-slate-950 rounded-full overflow-hidden border border-red-500/35 p-0.5 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+            {/* Material You Capsule Curved Loading Bar */}
+            <div className="w-56 sm:w-72 md:w-80 h-2.5 sm:h-3 bg-slate-950/80 rounded-full overflow-hidden border border-red-500/40 p-0.5 shadow-[0_0_20px_rgba(239,68,68,0.35)] backdrop-blur-md">
               <div
-                className="h-full bg-gradient-to-r from-red-600 via-orange-500 to-red-400 rounded-full transition-all duration-300 shadow-[0_0_12px_rgba(239,68,68,0.9)]"
+                className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-400 rounded-full transition-all duration-300 shadow-[0_0_14px_rgba(239,68,68,0.9)]"
                 style={{ width: `${loadProgress}%` }}
               />
             </div>
@@ -568,18 +590,19 @@ export default function TubeLightLogo() {
           </div>
         </div>
 
-        {/* FINAL STATE: TOP NAVBAR TEAM MATRIX TEXT (Fades + Pops in directly below top logo emblem) */}
+        {/* FINAL STATE: TEAM MATRIX capsule — appears just below the logo in navbar */}
         <div
-          className={`fixed top-[60px] sm:top-[68px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${isMovedToNav
-            ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
-            }`}
+          className={`fixed top-[54px] sm:top-[60px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${
+            isMovedToNav
+              ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
+          }`}
         >
-          <div className="flex items-center gap-3 px-4 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.35)]">
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm md:text-base tracking-[0.2em]">
+          <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#0d0d14]/85 backdrop-blur-xl border border-white/[0.07] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-[11px] sm:text-xs tracking-[0.22em]">
               TEAM
             </span>
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-sm sm:text-base md:text-lg tracking-[0.08em] drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-xs sm:text-sm tracking-[0.1em] drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]">
               MATRIX
             </span>
           </div>

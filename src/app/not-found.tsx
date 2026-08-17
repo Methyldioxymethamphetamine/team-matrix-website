@@ -29,43 +29,44 @@ export default function NotFound() {
       {/* Background Radial Glow */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.18)_0%,transparent_70%)] pointer-events-none z-0" />
 
-      {/* TOP NAVIGATION BAR */}
-      <header className="fixed top-0 left-0 right-0 h-16 sm:h-20 bg-slate-950/70 backdrop-blur-2xl border-b border-red-500/25 z-40 shadow-[0_4px_30px_rgba(239,68,68,0.2)]">
-        <div className="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 sm:w-10 h-auto transition-transform group-hover:scale-110">
-              <Image
-                src="/tempfiles/matrixlogo (2).png"
-                alt="Team Matrix Logo"
-                width={80}
-                height={80}
-                className="w-full h-auto object-contain filter drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm tracking-[0.2em]">
-                TEAM
-              </span>
-              <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-sm sm:text-base tracking-[0.08em] drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]">
-                MATRIX
-              </span>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-mono text-red-500/90 tracking-widest hidden sm:flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              STATUS: 404 PATH ERROR
-            </span>
-            <Link
-              href="/"
-              className="px-4 py-1.5 rounded-full border border-red-500/40 bg-red-950/40 text-red-300 text-xs font-mono tracking-wider transition-all hover:bg-red-900/60 hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(239,68,68,0.3)]"
-            >
-              RETURN HOME
-            </Link>
+      {/* TOP BAR: Logo Badge Island (left) + Pill Nav Island (center-right) */}
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-6 pt-4">
+        {/* LOGO BADGE ISLAND */}
+        <Link href="/" className="flex items-center gap-3 px-3 py-2 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] group transition-all hover:border-red-500/30">
+          <div className="w-7 sm:w-8 h-auto">
+            <Image
+              src="/tempfiles/matrixlogo (2).png"
+              alt="Team Matrix Logo"
+              width={80}
+              height={80}
+              className="w-full h-auto object-contain filter drop-shadow-[0_0_12px_rgba(239,68,68,0.6)] transition-transform group-hover:scale-110"
+            />
           </div>
-        </div>
-      </header>
+          <div className="flex items-center gap-2">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm tracking-[0.2em]">
+              TEAM
+            </span>
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-sm sm:text-base tracking-[0.08em] drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]">
+              MATRIX
+            </span>
+          </div>
+        </Link>
+
+        {/* STATUS + RETURN PILL ISLAND */}
+        <nav className="flex items-center gap-1 px-2 py-2 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 text-xs font-mono text-red-400/80 tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+            404
+          </span>
+          <div className="hidden sm:block w-px h-4 bg-white/10 mx-1" />
+          <Link
+            href="/"
+            className="px-4 py-1.5 rounded-full text-sm font-[family-name:var(--font-black-ops)] tracking-[0.06em] text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_18px_rgba(239,68,68,0.3)] active:scale-95"
+          >
+            Return
+          </Link>
+        </nav>
+      </div>
 
       {/* MAIN 404 CONTENT CONTAINER */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 pt-20 pb-12">
