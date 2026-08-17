@@ -18,7 +18,7 @@ export default function TubeLightLogo() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [frameImages, setFrameImages] = useState<HTMLImageElement[]>([]);
 
-  // Preload 60 transparent WebP drone frames for instantaneous 120fps snappy scroll scrubbing
+  // Preload 60 transparent RGBA WebP drone frames for instantaneous 120fps snappy scroll scrubbing
   useEffect(() => {
     const loaded: HTMLImageElement[] = [];
 
@@ -85,7 +85,7 @@ export default function TubeLightLogo() {
     { scope: containerRef }
   );
 
-  // Snappy Real-time Canvas Frame Rendering Loop (0ms latency frame scrubbing)
+  // Full Screen Snappy Canvas Frame Rendering Loop (Cover scaling, 0ms latency)
   useEffect(() => {
     if (!frameImages.length) return;
     const canvas = canvasRef.current;
@@ -128,9 +128,11 @@ export default function TubeLightLogo() {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           if (img && img.complete && img.naturalWidth > 0) {
-            const hRatio = canvas.width / img.naturalWidth;
-            const vRatio = canvas.height / img.naturalHeight;
-            const ratio = Math.min(hRatio, vRatio) * 0.92;
+            // Full Screen COVER scaling (uses full screen width & height with 0px margins)
+            const ratio = Math.max(
+              canvas.width / img.naturalWidth,
+              canvas.height / img.naturalHeight
+            );
 
             const drawW = img.naturalWidth * ratio;
             const drawH = img.naturalHeight * ratio;
@@ -274,15 +276,15 @@ export default function TubeLightLogo() {
         </div>
       </div>
 
-      {/* 3D DRONE CANVAS ANIMATION - Fills ENTIRE page below top acrylic navigation bar */}
+      {/* FULL SCREEN 3D DRONE CANVAS ANIMATION - 100% Viewport, Cover Scaled, Transparent Alpha */}
       <div
-        className={`fixed top-16 sm:top-20 inset-x-0 bottom-0 z-20 pointer-events-none transition-opacity duration-500 ${
+        className={`fixed inset-0 z-20 pointer-events-none transition-opacity duration-500 ${
           scrollProgress > 0.005 ? "opacity-100" : "opacity-0"
         }`}
       >
         <canvas
           ref={canvasRef}
-          className="w-full h-full object-contain filter drop-shadow-[0_0_55px_rgba(239,68,68,0.5)]"
+          className="w-full h-full object-cover filter drop-shadow-[0_0_55px_rgba(239,68,68,0.5)]"
         />
       </div>
 
