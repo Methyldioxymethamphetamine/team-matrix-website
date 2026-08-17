@@ -20,98 +20,90 @@ interface CalloutItem {
 
 const CALLOUTS: CalloutItem[] = [
   {
-    id: "waapi",
-    label: "waapi",
-    sublabel: "WEB ANIMATION API",
-    spec: "60 FPS NATIVE PIPELINE",
-    origin: { x: 430, y: 260 },
-    bend: { x: 570, y: 170 },
-    end: { x: 740, y: 170 },
+    id: "propeller",
+    label: "propeller",
+    sublabel: "PRIMARY FLIGHT PROPULSION",
+    spec: "CW ROTATION / 114MM PITCH",
+    origin: { x: 455, y: 165 },
+    bend: { x: 650, y: 165 },
+    end: { x: 760, y: 240 },
     triggerStep: 1,
   },
   {
-    id: "timeline",
-    label: "timeline",
-    sublabel: "GSAP CONTROL SEQUENCER",
-    spec: "MULTI-STAGE KEYFRAMES",
-    origin: { x: 470, y: 340 },
-    bend: { x: 590, y: 250 },
-    end: { x: 740, y: 250 },
+    id: "shell",
+    label: "shell",
+    sublabel: "OUTER ROTOR CASING",
+    spec: "CNC ALUMINUM ALLOY 19MM PCD",
+    origin: { x: 490, y: 185 },
+    bend: { x: 650, y: 185 },
+    end: { x: 760, y: 320 },
     triggerStep: 1,
   },
   {
-    id: "stagger",
-    label: "stagger",
-    sublabel: "MATRIX PARALLEL PIPELINE",
-    spec: "PARALLEL NODE EXECUTION",
-    origin: { x: 470, y: 430 },
-    bend: { x: 610, y: 330 },
-    end: { x: 740, y: 330 },
+    id: "diamagnetic-shell",
+    label: "Diamagnetic shell",
+    sublabel: "MAGNETIC ISOLATION SLEEVE",
+    spec: "STAINLESS STEEL 0.8MM",
+    origin: { x: 508, y: 370 },
+    bend: { x: 650, y: 370 },
+    end: { x: 760, y: 420 },
     triggerStep: 2,
   },
   {
-    id: "svg",
-    label: "svg",
-    sublabel: "VECTOR GRAPHICS OVERLAY",
-    spec: "HARDWARE ACCELERATED SVG",
-    origin: { x: 470, y: 530 },
-    bend: { x: 630, y: 410 },
-    end: { x: 740, y: 410 },
+    id: "magnets",
+    label: "Magnets",
+    sublabel: "NEODYMIUM MAGNET ARRAY",
+    spec: "14 SEGMENTS N42SH ALTERNATING N-S",
+    origin: { x: 508, y: 485 },
+    bend: { x: 650, y: 485 },
+    end: { x: 760, y: 520 },
     triggerStep: 2,
   },
   {
-    id: "spring",
-    label: "spring",
-    sublabel: "TENSION PHYSICS ENGINE",
-    spec: "INERTIAL DAMPING 0.85",
-    origin: { x: 480, y: 650 },
-    bend: { x: 650, y: 490 },
-    end: { x: 740, y: 490 },
+    id: "electric-shell-winding",
+    label: "electric shell and winding",
+    sublabel: "COPPER ARMATURE WINDINGS",
+    spec: "12 POLES / 18 AWG COILS",
+    origin: { x: 508, y: 645 },
+    bend: { x: 650, y: 645 },
+    end: { x: 760, y: 670 },
     triggerStep: 3,
   },
   {
-    id: "animation",
-    label: "animation",
-    sublabel: "120 FPS FRAME BUFFER",
-    spec: "WEBP TRANSPARENT CANVAS",
-    origin: { x: 440, y: 760 },
-    bend: { x: 670, y: 570 },
-    end: { x: 740, y: 570 },
+    id: "electronmagnetic-barrel",
+    label: "electronmagnetic barrel",
+    sublabel: "VECTORING HOUSING BASE",
+    spec: "5MM MAIN SHAFT MOUNT 4X19MM",
+    origin: { x: 510, y: 775 },
+    bend: { x: 650, y: 775 },
+    end: { x: 760, y: 800 },
     triggerStep: 3,
   },
 ];
 
 export default function ExplodedCallouts({ pauseProgress, isVisible }: ExplodedCalloutsProps) {
-  const currentStep = Math.min(4, Math.max(1, Math.floor(pauseProgress * 4) + 1));
-
   return (
     <div
-      className={`fixed inset-0 z-30 pointer-events-none transition-opacity duration-500 ${
-        isVisible ? "opacity-100" : "opacity-0"
-      }`}
+      className={`fixed inset-0 z-30 pointer-events-none transition-opacity duration-500 ${isVisible ? "opacity-100" : "opacity-0"
+        }`}
     >
       {/* Blueprint SVG Leader Lines */}
       <svg
         className="w-full h-full"
         viewBox="0 0 1000 1000"
         preserveAspectRatio="none"
-        style={{ filter: "drop-shadow(0 0 6px rgba(239, 68, 68, 0.4))" }}
+        style={{ filter: "drop-shadow(0 0 6px rgba(6, 182, 212, 0.5))" }}
       >
         <defs>
-          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#EF4444" stopOpacity="0.9" />
-            <stop offset="70%" stopColor="#F8FAFC" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#EF4444" stopOpacity="0.95" />
+          <linearGradient id="lineGradCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#06B6D4" stopOpacity="0.95" />
+            <stop offset="70%" stopColor="#F8FAFC" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
           </linearGradient>
-          <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#EF4444" stopOpacity="1" />
-            <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
-          </radialGradient>
         </defs>
 
         {CALLOUTS.map((item) => {
           const startP = (item.triggerStep - 1) * 0.22;
-          const endP = startP + 0.25;
           const lineP = Math.min(1, Math.max(0, (pauseProgress - startP) / 0.22));
 
           if (lineP <= 0) return null;
@@ -133,117 +125,102 @@ export default function ExplodedCallouts({ pauseProgress, isVisible }: ExplodedC
 
           return (
             <g key={item.id}>
-              {/* Origin Target Dot & Pulsing Ring */}
-              <circle cx={item.origin.x} cy={item.origin.y} r="5" fill="#EF4444" />
-              <circle
-                cx={item.origin.x}
-                cy={item.origin.y}
-                r="12"
-                fill="none"
-                stroke="#EF4444"
-                strokeWidth="1.5"
-                opacity={0.6 * lineP}
-              >
-                <animate attributeName="r" values="6;16;6" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite" />
-              </circle>
-
-              {/* Main Blueprint Path */}
+              {/* Main Blueprint Line Path */}
               <path
                 d={pathD}
                 fill="none"
-                stroke="url(#lineGrad)"
-                strokeWidth="1.8"
+                stroke="url(#lineGradCyan)"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-
-              {/* Path Endpoint Dot */}
-              {lineP > 0.6 && (
-                <circle cx={endX} cy={item.end.y} r="4" fill="#F8FAFC" stroke="#EF4444" strokeWidth="2" />
-              )}
             </g>
           );
         })}
       </svg>
 
-      {/* Text Callout Labels Stacked on Right (Matching Image 2 Aesthetic) */}
+      {/* HTML Layer for 1:1 Non-distorted Perfect Circular Dots & Labels */}
       <div className="absolute inset-0">
-        {CALLOUTS.map((item) => {
+        {CALLOUTS.map((item, idx) => {
           const startP = (item.triggerStep - 1) * 0.22;
           const lineP = Math.min(1, Math.max(0, (pauseProgress - startP) / 0.22));
 
           if (lineP <= 0) return null;
 
-          const topPct = item.end.y / 10; // e.g. 170 -> 17%
-          const leftPct = item.end.x / 10; // e.g. 740 -> 74%
+          let endX = item.bend.x;
+          if (lineP > 0.6) {
+            const hP = (lineP - 0.6) / 0.4;
+            endX = item.bend.x + (item.end.x - item.bend.x) * hP;
+          }
+
+          const originTopPct = item.origin.y / 10;
+          const originLeftPct = item.origin.x / 10;
+          const endTopPct = item.end.y / 10;
+          const endLeftPct = endX / 10;
 
           return (
-            <div
-              key={item.id}
-              className="absolute transition-all duration-300 flex items-center gap-3"
-              style={{
-                top: `${topPct}%`,
-                left: `${leftPct}%`,
-                transform: `translate(12px, -50%) translateX(${(1 - lineP) * 20}px)`,
-                opacity: lineP,
-              }}
-            >
-              {/* Leader Horizontal Connector Pill */}
-              <div className="w-4 h-[2px] bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+            <React.Fragment key={item.id}>
+              {/* Origin Target Dot (HTML 1:1 Perfect Geometric Circle) */}
+              <div
+                className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-opacity duration-300"
+                style={{
+                  top: `${originTopPct}%`,
+                  left: `${originLeftPct}%`,
+                  opacity: lineP,
+                }}
+              >
+                <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.9)]" />
+                <div className="absolute w-8 h-8 rounded-full border border-cyan-400 animate-ping opacity-60" />
+              </div>
 
-              {/* Label Group */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-lg sm:text-xl md:text-2xl font-light text-slate-200 tracking-wider hover:text-red-400 transition-colors">
-                    {item.label}
+              {/* Endpoint Dot (HTML 1:1 Perfect Geometric Circle) */}
+              {lineP > 0.6 && (
+                <div
+                  className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none transition-opacity duration-300"
+                  style={{
+                    top: `${endTopPct}%`,
+                    left: `${endLeftPct}%`,
+                    opacity: lineP,
+                  }}
+                >
+                  <div className="w-3.5 h-3.5 rounded-full bg-slate-100 border-2 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.9)]" />
+                </div>
+              )}
+
+              {/* Text Label Group Stacked on Right */}
+              <div
+                className="absolute transition-all duration-300 flex items-center gap-3"
+                style={{
+                  top: `${endTopPct}%`,
+                  left: `${item.end.x / 10}%`,
+                  transform: `translate(12px, -50%) translateX(${(1 - lineP) * 25}px)`,
+                  opacity: lineP,
+                }}
+              >
+                {/* Leader Horizontal Connector Pill */}
+                <div className="w-5 h-[2.5px] bg-cyan-400/90 shadow-[0_0_10px_rgba(6,182,212,0.9)]" />
+
+                {/* Label Content */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-base sm:text-lg md:text-xl font-bold text-slate-100 tracking-wider hover:text-cyan-300 transition-colors">
+                      {item.label}
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-bold">
+                      0{idx + 1}
+                    </span>
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-mono text-cyan-400/90 tracking-widest uppercase">
+                    {item.sublabel}
                   </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-950/60 border border-red-500/40 text-red-400 font-semibold">
-                    0{item.triggerStep}
+                  <span className="text-[9px] font-mono text-slate-400/80 tracking-wider">
+                    {item.spec}
                   </span>
                 </div>
-                <span className="text-[10px] sm:text-xs font-mono text-slate-400 tracking-widest uppercase">
-                  {item.sublabel}
-                </span>
               </div>
-            </div>
+            </React.Fragment>
           );
         })}
-      </div>
-
-      {/* TOP SCROLL DIAGNOSTIC STEP BADGE (Showing the 4 Paused Scrolls Progression) */}
-      <div className="absolute top-20 sm:top-24 right-6 sm:right-10 flex flex-col items-end gap-2 bg-slate-950/80 backdrop-blur-md p-3 rounded-xl border border-red-500/30 shadow-[0_0_25px_rgba(239,68,68,0.25)]">
-        <div className="text-[10px] font-mono text-red-400/90 tracking-widest flex items-center gap-2 uppercase">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-          <span>EXPLODED VIEW // PAUSED FRAME</span>
-        </div>
-
-        {/* 4 Step Indicators */}
-        <div className="flex items-center gap-1.5 mt-1">
-          {[1, 2, 3, 4].map((step) => {
-            const isActive = currentStep >= step;
-            const isCurrent = currentStep === step;
-
-            return (
-              <div
-                key={step}
-                className={`h-7 px-2.5 rounded-md flex items-center justify-center font-mono text-xs transition-all duration-300 ${
-                  isCurrent
-                    ? "bg-red-600 text-white font-bold border border-red-400 shadow-[0_0_12px_rgba(239,68,68,0.8)] scale-105"
-                    : isActive
-                    ? "bg-red-950/60 text-red-300 border border-red-500/40"
-                    : "bg-slate-900/60 text-slate-500 border border-slate-800"
-                }`}
-              >
-                <span>SCROLL {step}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-          {currentStep === 4 ? "✓ DIAGNOSTIC COMPLETE" : `SCROLL DOWN TO ADVANCE (${currentStep}/4)`}
-        </div>
       </div>
     </div>
   );

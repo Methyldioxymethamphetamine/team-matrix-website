@@ -365,7 +365,7 @@ export default function TubeLightLogo() {
         </div>
       </div>
 
-      {/* FULL SCREEN 3D DRONE CANVAS ANIMATION - Multi-stage sequential drone playback (drone -> drone1 -> drone_reversed) */}
+      {/* FULL SCREEN 3D DRONE CANVAS ANIMATION - Multi-stage sequential drone playback */}
       <div className="fixed inset-0 z-20 pointer-events-none">
         <canvas
           ref={canvasRef}
