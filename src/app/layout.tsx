@@ -34,9 +34,9 @@ export const metadata: Metadata = {
   title: "TEAM MATRIX",
   description: "Official Team Matrix Website",
   icons: {
-    icon: "/tempfiles/matrix-logo (1).webp",
-    shortcut: "/tempfiles/matrix-logo (1).webp",
-    apple: "/tempfiles/matrix-logo (1).webp",
+    icon: "/Untitled design.png",
+    shortcut: "/Untitled design.png",
+    apple: "/Untitled design.png",
   },
 };
 

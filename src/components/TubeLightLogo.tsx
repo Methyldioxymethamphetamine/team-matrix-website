@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
@@ -9,6 +10,11 @@ import DotField from "./DotField";
 import ExplodedCallouts from "./ExplodedCallouts";
 import GradualBlur from "./GradualBlur";
 import Strands from "./Strands";
+import Masonry from "./Masonry";
+import MembersSection from "./MembersSection";
+import SponsorsSection from "./SponsorsSection";
+import Footer from "./Footer";
+import type { WorkItem } from "@/data/works";
 
 const DRONE_1_COUNT = 60;
 const DRONE_2_COUNT = 70;
@@ -27,6 +33,27 @@ export default function TubeLightLogo() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [introFinished, setIntroFinished] = useState(false);
 
+  // Tracks whether Our Stories section should be visible (set inside RAF loop)
+  const [worksRawVisible, setWorksRawVisible] = useState(false);
+  // Tracks whether Members section should be visible (scrollY >= 17*vh = 1700vh)
+  const [membersRawVisible, setMembersRawVisible] = useState(false);
+
+  // Dynamically fetched from /api/works (reads /public/stories/ at runtime)
+  const [worksItems, setWorksItems] = useState<WorkItem[]>([]);
+  const [worksLoading, setWorksLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/works")
+      .then((r) => r.json())
+      .then((data: WorkItem[]) => {
+        setWorksItems(data);
+      })
+      .catch(() => {
+        setWorksItems([]); // leave empty on error — section will show header only
+      })
+      .finally(() => setWorksLoading(false));
+  }, []);
+
   // Video state & refs for About section video
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -37,7 +64,7 @@ export default function TubeLightLogo() {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     }
   };
@@ -213,10 +240,23 @@ export default function TubeLightLogo() {
 
     const render = () => {
       const scrollY = window.scrollY;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (maxScroll > 0) {
-        const P = Math.min(1, Math.max(0, scrollY / maxScroll));
-        setScrollProgress(P);
+
+      // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
+      // Drone animations always run across exactly 1100vh of scrolling (= 11 * innerHeight px).
+      // This means extending the page for Our Stories never stretches the drone stages.
+      const DRONE_VH = 11; // 1100vh expressed as viewport-height multiples
+      const droneMaxPx = DRONE_VH * window.innerHeight;
+      const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
+      setScrollProgress(P);
+
+      // ─── OUR STORIES VISIBILITY ───────────────────────────────────────────────
+      // Visible once drone animation wraps up (P >= 0.95)
+      setWorksRawVisible(P >= 0.95);
+
+      // Members section: always visible alongside Stories once drone ends
+      setMembersRawVisible(P >= 0.95);
+
+      if (true) { // always run (replaces old `if (maxScroll > 0)` guard)
 
         let activeSet: HTMLImageElement[] = [];
         let localProgress = 0;
@@ -315,7 +355,7 @@ export default function TubeLightLogo() {
             ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
           }
         }
-      }
+      } // end if (true)
 
       rafId = requestAnimationFrame(render);
     };
@@ -349,8 +389,13 @@ export default function TubeLightLogo() {
     }
   }, [aboutOpacity]);
 
+  // Our Stories visible when: intro done + raw scroll past 2-viewport delay
+  const worksVisible = isMovedToNav && worksRawVisible;
+  // Members visible when: intro done + scrolled to 17×vh
+  const membersVisible = isMovedToNav && membersRawVisible;
+
   return (
-    <div ref={containerRef} className="relative min-h-[1100vh] w-full bg-black text-white select-none">
+    <div ref={containerRef} className="relative w-full bg-black text-white select-none">
       {/* Interactive Canvas DotField Background */}
       <div className="fixed inset-0 z-0">
         <DotField
@@ -369,16 +414,26 @@ export default function TubeLightLogo() {
       {/* Background Radial Glow */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.14)_0%,transparent_65%)] pointer-events-none z-0" />
 
+      {/* ── SCROLL ANCHORS ── */}
+      {/* #about  → About Team Matrix section (visible 0–1.98vh, anchor at 100vh) */}
+      <div id="about"  aria-hidden="true" style={{ position: "absolute", top: "100vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
+      {/* #drones → drone1.webm starts at P≈0.42 of 1100vh = ~462vh scroll */}
+      <div id="drones" aria-hidden="true" style={{ position: "absolute", top: "462vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
+
       {/* THREE-ISLAND NAV: Left | (Logo center via logoGroupRef) | Right */}
       <header
         className={`fixed top-4 left-0 right-0 z-40 flex items-center justify-between px-5 sm:px-8 pointer-events-none transition-all duration-700 ${isMovedToNav ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
       >
-        {/* LEFT ISLAND: About Work Drones */}
+        {/* LEFT ISLAND: About Stories Drones */}
         <nav className="pointer-events-auto flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
-          {["About", "Work", "Drones"].map((label) => (
+          {([
+            { label: "About",   href: "#about"   },
+            { label: "Stories", href: "#stories" },
+            { label: "Drones",  href: "#drones"  },
+          ] as { label: string; href: string }[]).map(({ label, href }) => (
             <a
               key={label}
-              href={`#${label.toLowerCase()}`}
+              href={href}
               className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
             >
               {label}
@@ -389,9 +444,9 @@ export default function TubeLightLogo() {
         {/* CENTER SPACER — logo is positioned by logoGroupRef */}
         <div className="flex-1" />
 
-        {/* RIGHT ISLAND: FAQ Contact Join */}
+        {/* RIGHT ISLAND: Members Contact Join */}
         <nav className="pointer-events-auto flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
-          {["FAQ", "Contact"].map((label) => (
+          {["Members", "Contact"].map((label) => (
             <a
               key={label}
               href={`#${label.toLowerCase()}`}
@@ -401,12 +456,12 @@ export default function TubeLightLogo() {
             </a>
           ))}
           <div className="w-px h-4 bg-white/10 mx-1" />
-          <a
-            href="#join"
+          <Link
+            href="/404"
             className="px-4 py-1.5 rounded-full text-sm font-sans font-semibold text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_18px_rgba(239,68,68,0.3)] active:scale-95 whitespace-nowrap"
           >
-            Join
-          </a>
+            404
+          </Link>
         </nav>
       </header>
 
@@ -474,9 +529,8 @@ export default function TubeLightLogo() {
         {/* INITIAL PAGE LOADING INDICATOR BELOW LOGO */}
         {!isMovedToNav && (
           <div
-            className={`fixed left-1/2 -translate-x-1/2 top-[70%] sm:top-[74%] flex flex-col items-center justify-center space-y-3.5 pointer-events-none z-50 transition-opacity duration-700 ${
-              isAssetsLoaded && introFinished ? "opacity-0" : "opacity-100"
-            }`}
+            className={`fixed left-1/2 -translate-x-1/2 top-[70%] sm:top-[74%] flex flex-col items-center justify-center space-y-3.5 pointer-events-none z-50 transition-opacity duration-700 ${isAssetsLoaded && introFinished ? "opacity-0" : "opacity-100"
+              }`}
           >
             <div className="text-center font-mono text-xs sm:text-sm tracking-[0.4em] text-red-500 font-bold uppercase animate-pulse drop-shadow-[0_0_14px_rgba(239,68,68,0.9)]">
               loading {Math.round(loadProgress)}%
@@ -501,7 +555,7 @@ export default function TubeLightLogo() {
           }}
         >
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 lg:gap-10 items-center text-left">
-            
+
             {/* LEFT HALF: ABOUT TEAM MATRIX */}
             <div className="flex flex-col justify-between space-y-4">
               <div className="flex items-center justify-between border-b border-red-500/30 pb-3">
@@ -592,11 +646,10 @@ export default function TubeLightLogo() {
 
         {/* FINAL STATE: TEAM MATRIX capsule — appears just below the logo in navbar */}
         <div
-          className={`fixed top-[54px] sm:top-[60px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${
-            isMovedToNav
-              ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
-          }`}
+          className={`fixed top-[54px] sm:top-[60px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${isMovedToNav
+            ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
+            }`}
         >
           <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#0d0d14]/85 backdrop-blur-xl border border-white/[0.07] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
             <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-[11px] sm:text-xs tracking-[0.22em]">
@@ -646,6 +699,183 @@ export default function TubeLightLogo() {
           </div>
         </div>
       </div>
+
+      {/* ─────────────────────────────────────────────────────────
+           NORMAL FLOW SECTIONS (after 1100vh drone animation)
+           These scroll naturally — no sticky/scroll-jacking.
+      ───────────────────────────────────────────────────────── */}
+      {/* Spacer equal to the drone scroll budget */}
+      <div style={{ height: "1100vh" }} aria-hidden="true" />
+
+      {/* ── OUR STORIES ── */}
+      <div style={{ position: "relative", zIndex: 30 }}>
+        <section
+          id="stories"
+          aria-label="Our Stories"
+          style={{
+            minHeight: "100vh",
+            paddingTop: "8vh",
+            paddingBottom: "8vh",
+            opacity: worksVisible ? 1 : 0,
+            transition: "opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
+            pointerEvents: worksVisible ? "auto" : "none",
+            overflow: "hidden",
+          }}
+        >
+        {/* Ambient red glow backdrop */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(239,68,68,0.12) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div
+          style={{
+            position: "relative",
+            maxWidth: "1400px",
+            margin: "0 auto",
+            padding: "0 2rem",
+          }}
+        >
+          {/* Section header */}
+          <div
+            style={{
+              marginBottom: "3.5rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                marginBottom: "0.25rem",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: "2.5rem",
+                  height: "2px",
+                  background: "#ef4444",
+                  boxShadow: "0 0 10px rgba(239,68,68,0.9)",
+                  borderRadius: "9999px",
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.28em",
+                  textTransform: "uppercase",
+                  color: "rgba(239,68,68,0.85)",
+                  fontWeight: 600,
+                }}
+              >
+                TEAM MATRIX / STORIES
+              </span>
+            </div>
+
+            <h2
+              style={{
+                fontFamily: "var(--font-black-ops), 'Black Ops One', system-ui, sans-serif",
+                fontSize: "clamp(2.4rem, 5vw, 4.2rem)",
+                fontWeight: 400,
+                color: "#f8fafc",
+                lineHeight: 1.05,
+                letterSpacing: "-0.02em",
+                margin: 0,
+                textShadow: "0 0 40px rgba(239,68,68,0.3)",
+              }}
+            >
+              Our Stories
+            </h2>
+
+            <p
+              style={{
+                fontFamily: "var(--font-geist-sans), sans-serif",
+                fontSize: "0.95rem",
+                color: "rgba(248,250,252,0.55)",
+                maxWidth: "42ch",
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              Moments from the field, the lab, and the podium — captured across every competition and milestone.
+            </p>
+          </div>
+
+          {/* Masonry grid or loading skeleton */}
+          {worksLoading ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "1.25rem",
+              }}
+            >
+              {[380, 280, 460, 320, 410, 260].map((h, i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: `${h}px`,
+                    borderRadius: "1rem",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(239,68,68,0.12)",
+                    animation: "pulse 1.8s ease-in-out infinite",
+                    animationDelay: `${i * 0.12}s`,
+                  }}
+                />
+              ))}
+              <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.7}}`}</style>
+            </div>
+          ) : worksItems.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "4rem 0",
+                fontFamily: "var(--font-geist-mono), monospace",
+                fontSize: "0.8rem",
+                color: "rgba(248,250,252,0.3)",
+                letterSpacing: "0.15em",
+              }}
+            >
+              DROP .JPG / .PNG FILES INTO /public/stories/ TO POPULATE THIS GALLERY
+            </div>
+          ) : (
+            <Masonry
+              items={worksItems}
+              ease="power3.out"
+              duration={0.6}
+              stagger={0.05}
+              animateFrom="bottom"
+              scaleOnHover={true}
+              hoverScale={0.97}
+              blurToFocus={true}
+              colorShiftOnHover={false}
+              visible={worksVisible}
+            />
+          )}
+        </div>
+        </section>
+      </div>
+
+      {/* ── MEMBERS ── */}
+      <div id="members" style={{ position: "relative", zIndex: 30 }}>
+        <MembersSection visible={membersVisible} />
+      </div>
+
+      {/* ── SPONSORS ── */}
+      <SponsorsSection />
+
+      {/* ── FOOTER ── */}
+      <Footer />
     </div>
   );
 }
