@@ -25,6 +25,25 @@ export default function TubeLightLogo() {
   const [seq2Images, setSeq2Images] = useState<HTMLImageElement[]>([]);
   const [seq3Images, setSeq3Images] = useState<HTMLImageElement[]>([]);
 
+  // Reset scroll position to top on page load / refresh & disable browser scroll restoration
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if ("scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+      window.scrollTo(0, 0);
+
+      const handleBeforeUnload = () => {
+        window.scrollTo(0, 0);
+      };
+
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      return () => {
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      };
+    }
+  }, []);
+
   // Preload transparent RGBA WebP frames for all 3 sequences for 120fps instantaneous 0ms playback
   useEffect(() => {
     // 1) Sequence 1: drone.webm (60 frames)
