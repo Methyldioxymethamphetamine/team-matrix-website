@@ -12,7 +12,9 @@
   --font-mono: var(--font-geist-mono);
   --font-orbitron: var(--font-orbitron);
   --font-chakra: var(--font-chakra);
+  --font-black-ops: var(--font-black-ops);
 }
+
 
 body {
   background: var(--background);

@@ -7,7 +7,9 @@ import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
 import DotField from "./DotField";
 
-const TOTAL_DRONE_FRAMES = 60;
+const DRONE_1_COUNT = 60;
+const DRONE_2_COUNT = 70;
+const DRONE_3_COUNT = 70;
 
 export default function TubeLightLogo() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -16,19 +18,43 @@ export default function TubeLightLogo() {
 
   const [isMovedToNav, setIsMovedToNav] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [frameImages, setFrameImages] = useState<HTMLImageElement[]>([]);
 
-  // Preload 60 transparent RGBA WebP drone frames for instantaneous 120fps snappy scroll scrubbing
+  // In-memory frame buffers for all 3 sequential drone videos
+  const [seq1Images, setSeq1Images] = useState<HTMLImageElement[]>([]);
+  const [seq2Images, setSeq2Images] = useState<HTMLImageElement[]>([]);
+  const [seq3Images, setSeq3Images] = useState<HTMLImageElement[]>([]);
+
+  // Preload transparent RGBA WebP frames for all 3 sequences for 120fps instantaneous 0ms playback
   useEffect(() => {
-    const loaded: HTMLImageElement[] = [];
-
-    for (let i = 1; i <= TOTAL_DRONE_FRAMES; i++) {
+    // 1) Sequence 1: drone.webm (60 frames)
+    const imgs1: HTMLImageElement[] = [];
+    for (let i = 1; i <= DRONE_1_COUNT; i++) {
       const img = new window.Image();
-      const frameIndex = String(i).padStart(3, "0");
-      img.src = `/tempfiles/drone_frames/frame_${frameIndex}.webp`;
-      loaded.push(img);
+      const idx = String(i).padStart(3, "0");
+      img.src = `/tempfiles/drone_frames/frame_${idx}.webp`;
+      imgs1.push(img);
     }
-    setFrameImages(loaded);
+    setSeq1Images(imgs1);
+
+    // 2) Sequence 2: drone1.webm (70 frames)
+    const imgs2: HTMLImageElement[] = [];
+    for (let i = 1; i <= DRONE_2_COUNT; i++) {
+      const img = new window.Image();
+      const idx = String(i).padStart(3, "0");
+      img.src = `/tempfiles/drone1_frames/frame_${idx}.webp`;
+      imgs2.push(img);
+    }
+    setSeq2Images(imgs2);
+
+    // 3) Sequence 3: drone_reversed.webm (70 frames)
+    const imgs3: HTMLImageElement[] = [];
+    for (let i = 1; i <= DRONE_3_COUNT; i++) {
+      const img = new window.Image();
+      const idx = String(i).padStart(3, "0");
+      img.src = `/tempfiles/drone_reversed_frames/frame_${idx}.webp`;
+      imgs3.push(img);
+    }
+    setSeq3Images(imgs3);
   }, []);
 
   // Tubelight Intro GSAP Sequence
@@ -49,10 +75,10 @@ export default function TubeLightLogo() {
             document.body.style.overflow = "auto";
           }
 
-          // After 0.5 seconds move logo to top acrylic nav & text to bottom of logo
+          // 2 seconds intentional delay before moving to top nav
           setTimeout(() => {
             setIsMovedToNav(true);
-          }, 500);
+          }, 2000);
         },
       });
 
@@ -85,9 +111,9 @@ export default function TubeLightLogo() {
     { scope: containerRef }
   );
 
-  // Full Screen Snappy Canvas Frame Rendering Loop (Cover scaling, 0ms latency)
+  // Multi-stage sequential 3D Canvas Frame Renderer (drone -> drone1 -> drone_reversed -> fadeout)
   useEffect(() => {
-    if (!frameImages.length) return;
+    if (!seq1Images.length || !seq2Images.length || !seq3Images.length) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -103,18 +129,62 @@ export default function TubeLightLogo() {
 
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       if (maxScroll > 0) {
-        const progress = Math.min(1, Math.max(0, scrollY / maxScroll));
-        setScrollProgress(progress);
+        const P = Math.min(1, Math.max(0, scrollY / maxScroll));
+        setScrollProgress(P);
 
-        const frameIdx = Math.min(
-          frameImages.length - 1,
-          Math.floor(progress * (frameImages.length - 1))
-        );
+        let activeSet: HTMLImageElement[] = [];
+        let localProgress = 0;
+        let opacity = 0;
 
-        const img = frameImages[frameIdx];
+        // Sequence Stage 1: drone.webm (0.00 -> 0.38)
+        if (P < 0.38) {
+          activeSet = seq1Images;
+          if (P < 0.04) {
+            opacity = P / 0.04;
+            localProgress = 0;
+          } else if (P < 0.22) {
+            opacity = 1;
+            localProgress = (P - 0.04) / 0.18;
+          } else if (P < 0.34) {
+            // Hold LAST frame of drone.webm for 1 ENTIRE SCROLL
+            opacity = 1;
+            localProgress = 1;
+          } else {
+            // Fade out drone.webm
+            opacity = (0.38 - P) / 0.04;
+            localProgress = 1;
+          }
+        }
+        // Sequence Stage 2: drone1.webm (0.38 -> 0.65)
+        else if (P < 0.65) {
+          activeSet = seq2Images;
+          if (P < 0.41) {
+            opacity = (P - 0.38) / 0.03; // Fade in drone1
+            localProgress = 0;
+          } else {
+            opacity = 1;
+            localProgress = (P - 0.41) / 0.24; // Plays 100% of drone1.webm
+          }
+        }
+        // Sequence Stage 3: drone_reversed.webm (0.65 -> 1.00) - Seamless transition from drone1
+        else {
+          activeSet = seq3Images;
+          if (P < 0.84) {
+            opacity = 1; // Seamless transition with no opacity dip
+            localProgress = (P - 0.65) / 0.19; // Plays 100% of drone_reversed.webm
+          } else if (P < 0.95) {
+            // Hold LAST frame of drone_reversed.webm for 1 ENTIRE SCROLL
+            opacity = 1;
+            localProgress = 1;
+          } else {
+            // Final Fade Out
+            opacity = (1.00 - P) / 0.05;
+            localProgress = 1;
+          }
+        }
 
         const parent = canvas.parentElement;
-        if (parent) {
+        if (parent && activeSet.length > 0) {
           const rect = parent.getBoundingClientRect();
           const dpr = Math.min(window.devicePixelRatio || 1, 2);
           const targetW = Math.floor(rect.width * dpr);
@@ -127,8 +197,16 @@ export default function TubeLightLogo() {
 
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (img && img.complete && img.naturalWidth > 0) {
-            // Full Screen COVER scaling (uses full screen width & height with 0px margins)
+          const frameIdx = Math.min(
+            activeSet.length - 1,
+            Math.floor(localProgress * (activeSet.length - 1))
+          );
+          const img = activeSet[frameIdx];
+
+          if (img && img.complete && img.naturalWidth > 0 && opacity > 0.01) {
+            ctx.globalAlpha = opacity;
+
+            // Full Screen COVER scaling
             const ratio = Math.max(
               canvas.width / img.naturalWidth,
               canvas.height / img.naturalHeight
@@ -152,7 +230,7 @@ export default function TubeLightLogo() {
     return () => {
       cancelAnimationFrame(rafId);
     };
-  }, [frameImages]);
+  }, [seq1Images, seq2Images, seq3Images]);
 
   return (
     <div ref={containerRef} className="relative min-h-[650vh] w-full bg-black text-white select-none">
@@ -215,73 +293,70 @@ export default function TubeLightLogo() {
           />
         </div>
 
-        {/* TEAM MATRIX TEXT (Transitions to directly below logo emblem in ONE single line, same Orbitron font) */}
+        {/* INITIAL STATE: Left Stacked TEAM MATRIX Text (Fades out when transitioning to navbar) */}
         <div
-          className={`fixed transition-all duration-700 ease-in-out ${
-            isMovedToNav
-              ? "top-[60px] sm:top-[68px] left-1/2 -translate-x-1/2 translate-y-0 flex flex-row items-center justify-center gap-2 whitespace-nowrap pointer-events-auto"
-              : "right-[calc(50%+7rem)] sm:right-[calc(50%+9.5rem)] md:right-[calc(50%+12.5rem)] lg:right-[calc(50%+14.5rem)] top-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none"
+          className={`fixed right-[calc(50%+7rem)] sm:right-[calc(50%+9.5rem)] md:right-[calc(50%+12.5rem)] lg:right-[calc(50%+14.5rem)] top-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none transition-all duration-500 ease-out ${
+            isMovedToNav ? "opacity-0 scale-90" : "opacity-100 scale-100"
           }`}
         >
-          {isMovedToNav ? (
-            /* FINAL STATE: Single line, same Orbitron font, preserving design colors, below logo emblem */
-            <div className="flex items-center gap-3 px-4 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.35)]">
-              <span className="font-orbitron font-extrabold text-red-500 text-xs sm:text-sm md:text-base tracking-[0.25em]">
-                TEAM
-              </span>
-              <span className="font-orbitron font-black text-slate-100 text-sm sm:text-base md:text-lg tracking-[0.1em] drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]">
-                MATRIX
-              </span>
-            </div>
-          ) : (
-            /* INITIAL STATE: Stacked StrokeText to the Left of Logo */
-            <>
-              <div className="w-[200px] sm:w-[300px] md:w-[380px] lg:w-[460px]">
-                <StrokeText
-                  text="TEAM"
-                  strokeColor="#EF4444"
-                  fillColor="#EF4444"
-                  strokeWidth={2.6}
-                  drawDuration={1.4}
-                  fillDelay={0.1}
-                  stagger={0.07}
-                  fontSize={58}
-                  fontWeight={800}
-                  letterSpacing={14}
-                  trigger="mount"
-                  fillMode="fade"
-                  fontFamily="var(--font-orbitron), sans-serif"
-                />
-              </div>
+          <div className="w-[200px] sm:w-[300px] md:w-[380px] lg:w-[460px]">
+            <StrokeText
+              text="TEAM"
+              strokeColor="#EF4444"
+              fillColor="#EF4444"
+              strokeWidth={2.6}
+              drawDuration={1.4}
+              fillDelay={0.1}
+              stagger={0.07}
+              fontSize={58}
+              fontWeight={400}
+              letterSpacing={14}
+              trigger="mount"
+              fillMode="fade"
+              fontFamily="var(--font-black-ops), 'Black Ops One', system-ui, sans-serif"
+            />
+          </div>
 
-              <div className="w-[280px] sm:w-[440px] md:w-[580px] lg:w-[680px] -mt-2 sm:-mt-4">
-                <StrokeText
-                  text="MATRIX"
-                  strokeColor="#EF4444"
-                  fillColor="#F8FAFC"
-                  strokeWidth={2.2}
-                  drawDuration={1.8}
-                  fillDelay={0.2}
-                  stagger={0.06}
-                  fillMode="wipe"
-                  fontSize={115}
-                  fontWeight={900}
-                  letterSpacing={-1}
-                  trigger="mount"
-                  fontFamily="var(--font-orbitron), sans-serif"
-                />
-              </div>
-            </>
-          )}
+          <div className="w-[280px] sm:w-[440px] md:w-[580px] lg:w-[680px] -mt-2 sm:-mt-4">
+            <StrokeText
+              text="MATRIX"
+              strokeColor="#EF4444"
+              fillColor="#F8FAFC"
+              strokeWidth={2.2}
+              drawDuration={1.8}
+              fillDelay={0.2}
+              stagger={0.06}
+              fillMode="wipe"
+              fontSize={115}
+              fontWeight={400}
+              letterSpacing={-1}
+              trigger="mount"
+              fontFamily="var(--font-black-ops), 'Black Ops One', system-ui, sans-serif"
+            />
+          </div>
+        </div>
+
+        {/* FINAL STATE: TOP NAVBAR TEAM MATRIX TEXT (Fades + Pops in directly below top logo emblem) */}
+        <div
+          className={`fixed top-[60px] sm:top-[68px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${
+            isMovedToNav
+              ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
+          }`}
+        >
+          <div className="flex items-center gap-3 px-4 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.35)]">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm md:text-base tracking-[0.2em]">
+              TEAM
+            </span>
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-sm sm:text-base md:text-lg tracking-[0.08em] drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]">
+              MATRIX
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* FULL SCREEN 3D DRONE CANVAS ANIMATION - 100% Viewport, Cover Scaled, Transparent Alpha */}
-      <div
-        className={`fixed inset-0 z-20 pointer-events-none transition-opacity duration-500 ${
-          scrollProgress > 0.005 ? "opacity-100" : "opacity-0"
-        }`}
-      >
+      {/* FULL SCREEN 3D DRONE CANVAS ANIMATION - Multi-stage sequential drone playback (drone -> drone1 -> drone_reversed) */}
+      <div className="fixed inset-0 z-20 pointer-events-none">
         <canvas
           ref={canvasRef}
           className="w-full h-full object-cover filter drop-shadow-[0_0_55px_rgba(239,68,68,0.5)]"
@@ -296,7 +371,7 @@ export default function TubeLightLogo() {
           }`}
         >
           <div className="px-4 py-1.5 rounded-full border border-red-500/30 bg-red-950/20 text-red-300 text-xs font-mono tracking-widest backdrop-blur-md animate-pulse">
-            SCROLL TO PLAY 3D DRONE TELEMETRY
+            SCROLL TO PLAY 3D DRONE SEQUENCES
           </div>
           <div className="w-5 h-9 rounded-full border-2 border-red-500/50 flex items-start justify-center p-1">
             <div className="w-1.5 h-2.5 bg-red-500 rounded-full animate-bounce" />

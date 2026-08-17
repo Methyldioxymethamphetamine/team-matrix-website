@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Orbitron, Chakra_Petch } from "next/font/google";
+import { Geist, Geist_Mono, Orbitron, Chakra_Petch, Black_Ops_One } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,6 +24,12 @@ const chakraPetch = Chakra_Petch({
   weight: ["400", "600", "700"],
 });
 
+const blackOpsOne = Black_Ops_One({
+  variable: "--font-black-ops",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
 export const metadata: Metadata = {
   title: "TEAM MATRIX",
   description: "Official Team Matrix Website",
@@ -37,10 +43,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} ${chakraPetch.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} ${chakraPetch.variable} ${blackOpsOne.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-black text-white">{children}</body>
     </html>
   );
 }
+
 
