@@ -7,13 +7,29 @@ import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
 import DotField from "./DotField";
 
+const TOTAL_DRONE_FRAMES = 60;
+
 export default function TubeLightLogo() {
   const containerRef = useRef<HTMLDivElement>(null);
   const logoGroupRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [isMovedToNav, setIsMovedToNav] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [frameImages, setFrameImages] = useState<HTMLImageElement[]>([]);
+
+  // Preload 60 transparent WebP drone frames for instantaneous 120fps snappy scroll scrubbing
+  useEffect(() => {
+    const loaded: HTMLImageElement[] = [];
+
+    for (let i = 1; i <= TOTAL_DRONE_FRAMES; i++) {
+      const img = new window.Image();
+      const frameIndex = String(i).padStart(3, "0");
+      img.src = `/tempfiles/drone_frames/frame_${frameIndex}.webp`;
+      loaded.push(img);
+    }
+    setFrameImages(loaded);
+  }, []);
 
   // Tubelight Intro GSAP Sequence
   useGSAP(
@@ -49,7 +65,7 @@ export default function TubeLightLogo() {
         .to(logoGroup, { opacity: 0.95, filter: "drop-shadow(0 0 25px rgba(239, 68, 68, 0.8))", duration: 0.04 })
         .to(logoGroup, { opacity: 0.2, filter: "drop-shadow(0 0 5px rgba(239, 68, 68, 0.2))", duration: 0.08 })
         .to(logoGroup, { opacity: 1, filter: "drop-shadow(0 0 30px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 55px rgba(239, 68, 68, 0.7))", duration: 0.12 })
-        .to(logoGroup, { opacity: 0.8, filter: "drop-shadow(0 0 15px rgba(255, 255, 255, 0.5))", duration: 0.06 })
+        .to(logoGroup, { opacity: 0.8, filter: "drop-shadow(0 0 15px rgba(239, 68, 68, 0.5))", duration: 0.06 })
         .to(logoGroup, {
           opacity: 1,
           filter: "drop-shadow(0 0 25px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 50px rgba(239, 68, 68, 0.6))",
@@ -69,49 +85,75 @@ export default function TubeLightLogo() {
     { scope: containerRef }
   );
 
-  // Real-time Millisecond Scroll Video Scrubbing (runs every frame continuously)
+  // Snappy Real-time Canvas Frame Rendering Loop (0ms latency frame scrubbing)
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (!frameImages.length) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
     let rafId: number;
 
-    const syncVideoToScroll = () => {
+    const render = () => {
       const scrollY = window.scrollY;
       if (scrollY > 15) {
         setIsMovedToNav(true);
       }
 
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (maxScroll > 0 && video.duration && !isNaN(video.duration)) {
-        // Slow down scroll-to-playback ratio so user scrolls more to play less video
-        const progress = Math.min(1, Math.max(0, scrollY / (maxScroll * 0.95)));
+      if (maxScroll > 0) {
+        const progress = Math.min(1, Math.max(0, scrollY / maxScroll));
         setScrollProgress(progress);
 
-        const targetTime = progress * video.duration;
+        const frameIdx = Math.min(
+          frameImages.length - 1,
+          Math.floor(progress * (frameImages.length - 1))
+        );
 
-        // Instant frame seek update as user scrolls
-        if (Math.abs(video.currentTime - targetTime) > 0.008) {
-          if ("fastSeek" in video && typeof (video as { fastSeek?: (t: number) => void }).fastSeek === "function") {
-            (video as { fastSeek: (t: number) => void }).fastSeek(targetTime);
-          } else {
-            video.currentTime = targetTime;
+        const img = frameImages[frameIdx];
+
+        const parent = canvas.parentElement;
+        if (parent) {
+          const rect = parent.getBoundingClientRect();
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const targetW = Math.floor(rect.width * dpr);
+          const targetH = Math.floor(rect.height * dpr);
+
+          if (canvas.width !== targetW || canvas.height !== targetH) {
+            canvas.width = targetW;
+            canvas.height = targetH;
+          }
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          if (img && img.complete && img.naturalWidth > 0) {
+            const hRatio = canvas.width / img.naturalWidth;
+            const vRatio = canvas.height / img.naturalHeight;
+            const ratio = Math.min(hRatio, vRatio) * 0.92;
+
+            const drawW = img.naturalWidth * ratio;
+            const drawH = img.naturalHeight * ratio;
+            const offsetX = (canvas.width - drawW) / 2;
+            const offsetY = (canvas.height - drawH) / 2;
+
+            ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
           }
         }
       }
 
-      rafId = requestAnimationFrame(syncVideoToScroll);
+      rafId = requestAnimationFrame(render);
     };
 
-    rafId = requestAnimationFrame(syncVideoToScroll);
+    rafId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [frameImages]);
 
   return (
-    <div ref={containerRef} className="relative min-h-[600vh] w-full bg-black text-white select-none">
+    <div ref={containerRef} className="relative min-h-[650vh] w-full bg-black text-white select-none">
       {/* Interactive Canvas DotField Background */}
       <div className="fixed inset-0 z-0">
         <DotField
@@ -232,19 +274,15 @@ export default function TubeLightLogo() {
         </div>
       </div>
 
-      {/* TRANSPARENT WEBM DRONE VIDEO - Millisecond scroll scrubbing */}
+      {/* 3D DRONE CANVAS ANIMATION - Fills ENTIRE page below top acrylic navigation bar */}
       <div
-        className={`fixed inset-0 z-20 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
+        className={`fixed top-16 sm:top-20 inset-x-0 bottom-0 z-20 pointer-events-none transition-opacity duration-500 ${
           scrollProgress > 0.005 ? "opacity-100" : "opacity-0"
         }`}
       >
-        <video
-          ref={videoRef}
-          src="/tempfiles/drone.webm"
-          muted
-          playsInline
-          preload="auto"
-          className="w-full max-w-2xl md:max-w-4xl h-auto object-contain drop-shadow-[0_0_50px_rgba(239,68,68,0.45)]"
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full object-contain filter drop-shadow-[0_0_55px_rgba(239,68,68,0.5)]"
         />
       </div>
 
