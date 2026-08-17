@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
 import DotField from "./DotField";
+import ExplodedCallouts from "./ExplodedCallouts";
 
 const DRONE_1_COUNT = 60;
 const DRONE_2_COUNT = 70;
@@ -136,49 +137,55 @@ export default function TubeLightLogo() {
         let localProgress = 0;
         let opacity = 0;
 
-        // Sequence Stage 1: drone.webm (0.00 -> 0.38)
-        if (P < 0.38) {
+        // Sequence Stage 1: drone.webm (0.00 -> 0.22)
+        if (P < 0.22) {
           activeSet = seq1Images;
-          if (P < 0.04) {
-            opacity = P / 0.04;
+          if (P < 0.03) {
+            opacity = P / 0.03;
             localProgress = 0;
-          } else if (P < 0.22) {
+          } else if (P < 0.16) {
             opacity = 1;
-            localProgress = (P - 0.04) / 0.18;
-          } else if (P < 0.34) {
-            // Hold LAST frame of drone.webm for 1 ENTIRE SCROLL
+            localProgress = (P - 0.03) / 0.13;
+          } else if (P < 0.19) {
+            // Hold LAST frame of drone.webm
             opacity = 1;
             localProgress = 1;
           } else {
             // Fade out drone.webm
-            opacity = (0.38 - P) / 0.04;
+            opacity = (0.22 - P) / 0.03;
             localProgress = 1;
           }
         }
-        // Sequence Stage 2: drone1.webm (0.38 -> 0.65)
-        else if (P < 0.65) {
+        // Sequence Stage 2: drone1.webm (0.22 -> 0.42) - Plays explosion to 100%
+        else if (P < 0.42) {
           activeSet = seq2Images;
-          if (P < 0.41) {
-            opacity = (P - 0.38) / 0.03; // Fade in drone1
+          if (P < 0.25) {
+            opacity = (P - 0.22) / 0.03; // Fade in drone1
             localProgress = 0;
           } else {
             opacity = 1;
-            localProgress = (P - 0.41) / 0.24; // Plays 100% of drone1.webm
+            localProgress = (P - 0.25) / 0.17; // Plays 100% of drone1.webm to full exploded view
           }
         }
-        // Sequence Stage 3: drone_reversed.webm (0.65 -> 1.00) - Seamless transition from drone1
+        // Sequence Stage 2.5: PAUSED EXPLODED FRAME (0.42 -> 0.76) - 4 CONSECUTIVE SCROLLS
+        else if (P < 0.76) {
+          activeSet = seq2Images;
+          opacity = 1;
+          localProgress = 1; // Holds the fully exploded 3D frame static for 4 scroll steps
+        }
+        // Sequence Stage 3: drone_reversed.webm (0.76 -> 1.00) - Collapses assembly back down
         else {
           activeSet = seq3Images;
-          if (P < 0.84) {
-            opacity = 1; // Seamless transition with no opacity dip
-            localProgress = (P - 0.65) / 0.19; // Plays 100% of drone_reversed.webm
-          } else if (P < 0.95) {
-            // Hold LAST frame of drone_reversed.webm for 1 ENTIRE SCROLL
+          if (P < 0.94) {
+            opacity = 1;
+            localProgress = (P - 0.76) / 0.18; // Plays 100% of drone_reversed.webm
+          } else if (P < 0.98) {
+            // Hold LAST frame of drone_reversed.webm
             opacity = 1;
             localProgress = 1;
           } else {
             // Final Fade Out
-            opacity = (1.00 - P) / 0.05;
+            opacity = (1.00 - P) / 0.02;
             localProgress = 1;
           }
         }
@@ -232,8 +239,11 @@ export default function TubeLightLogo() {
     };
   }, [seq1Images, seq2Images, seq3Images]);
 
+  const isExplodedCalloutsVisible = scrollProgress >= 0.40 && scrollProgress <= 0.78;
+  const pauseProgress = Math.min(1, Math.max(0, (scrollProgress - 0.42) / 0.34));
+
   return (
-    <div ref={containerRef} className="relative min-h-[650vh] w-full bg-black text-white select-none">
+    <div ref={containerRef} className="relative min-h-[1100vh] w-full bg-black text-white select-none">
       {/* Interactive Canvas DotField Background */}
       <div className="fixed inset-0 z-0">
         <DotField
@@ -362,6 +372,9 @@ export default function TubeLightLogo() {
           className="w-full h-full object-cover filter drop-shadow-[0_0_55px_rgba(239,68,68,0.5)]"
         />
       </div>
+
+      {/* BLUEPRINT SVG CALLOUT LINES & LABELS OVERLAY (4 CONSECUTIVE PAUSED SCROLLS) */}
+      <ExplodedCallouts pauseProgress={pauseProgress} isVisible={isExplodedCalloutsVisible} />
 
       {/* HERO SCROLL PROMPT */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
