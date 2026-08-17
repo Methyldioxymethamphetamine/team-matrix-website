@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
 import DotField from "./DotField";
 import ExplodedCallouts from "./ExplodedCallouts";
+import GradualBlur from "./GradualBlur";
 
 const DRONE_1_COUNT = 60;
 const DRONE_2_COUNT = 70;
@@ -283,9 +284,8 @@ export default function TubeLightLogo() {
 
       {/* ACRYLIC BLUR NAVIGATION BAR AT TOP OF PAGE */}
       <header
-        className={`fixed top-0 left-0 right-0 h-16 sm:h-20 bg-slate-950/60 backdrop-blur-2xl border-b border-red-500/25 z-40 transition-all duration-700 ${
-          isMovedToNav ? "opacity-100 translate-y-0 shadow-[0_4px_30px_rgba(239,68,68,0.2)]" : "opacity-0 -translate-y-full pointer-events-none"
-        }`}
+        className={`fixed top-0 left-0 right-0 h-16 sm:h-20 bg-slate-950/60 backdrop-blur-2xl border-b border-red-500/25 z-40 transition-all duration-700 ${isMovedToNav ? "opacity-100 translate-y-0 shadow-[0_4px_30px_rgba(239,68,68,0.2)]" : "opacity-0 -translate-y-full pointer-events-none"
+          }`}
       >
         <div className="max-w-7xl mx-auto h-full px-6 flex items-center justify-between">
           <div className="text-xs font-mono text-red-500/80 tracking-widest flex items-center gap-2">
@@ -306,11 +306,10 @@ export default function TubeLightLogo() {
       <div ref={logoGroupRef} className="fixed inset-0 z-50 pointer-events-none">
         {/* CENTER MATRIX LOGO EMBLEM (Transitions to top acrylic navbar center) */}
         <div
-          className={`fixed transition-all duration-700 ease-in-out pointer-events-none ${
-            isMovedToNav
+          className={`fixed transition-all duration-700 ease-in-out pointer-events-none ${isMovedToNav
               ? "top-2 sm:top-3 left-1/2 -translate-x-1/2 w-12 sm:w-14 md:w-16 translate-y-0"
               : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 sm:w-72 md:w-88 lg:w-[380px]"
-          }`}
+            }`}
         >
           <Image
             src="/tempfiles/matrixlogo (2).png"
@@ -324,9 +323,8 @@ export default function TubeLightLogo() {
 
         {/* INITIAL STATE: Left Stacked TEAM MATRIX Text (Fades out when transitioning to navbar) */}
         <div
-          className={`fixed right-[calc(50%+7rem)] sm:right-[calc(50%+9.5rem)] md:right-[calc(50%+12.5rem)] lg:right-[calc(50%+14.5rem)] top-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none transition-all duration-500 ease-out ${
-            isMovedToNav ? "opacity-0 scale-90" : "opacity-100 scale-100"
-          }`}
+          className={`fixed right-[calc(50%+7rem)] sm:right-[calc(50%+9.5rem)] md:right-[calc(50%+12.5rem)] lg:right-[calc(50%+14.5rem)] top-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none transition-all duration-500 ease-out ${isMovedToNav ? "opacity-0 scale-90" : "opacity-100 scale-100"
+            }`}
         >
           <div className="w-[200px] sm:w-[300px] md:w-[380px] lg:w-[460px]">
             <StrokeText
@@ -367,11 +365,10 @@ export default function TubeLightLogo() {
 
         {/* FINAL STATE: TOP NAVBAR TEAM MATRIX TEXT (Fades + Pops in directly below top logo emblem) */}
         <div
-          className={`fixed top-[60px] sm:top-[68px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${
-            isMovedToNav
+          className={`fixed top-[60px] sm:top-[68px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${isMovedToNav
               ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
               : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
-          }`}
+            }`}
         >
           <div className="flex items-center gap-3 px-4 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.35)]">
             <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm md:text-base tracking-[0.2em]">
@@ -395,17 +392,28 @@ export default function TubeLightLogo() {
       {/* BLUEPRINT SVG CALLOUT LINES & LABELS OVERLAY (4 CONSECUTIVE PAUSED SCROLLS) */}
       <ExplodedCallouts pauseProgress={pauseProgress} isVisible={isExplodedCalloutsVisible} />
 
+      {/* BOTTOM GRADUAL BACKDROP BLUR OVERLAY */}
+      <GradualBlur
+        target="page"
+        position="bottom"
+        height="4.5rem"
+        strength={3}
+        divCount={8}
+        curve="bezier"
+        exponential={true}
+        zIndex={35}
+      />
+
       {/* HERO SCROLL PROMPT */}
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+      <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
         <div
-          className={`flex flex-col items-center gap-3 transition-all duration-700 ${
-            scrollProgress > 0.05 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
-          }`}
+          className={`flex flex-col items-center gap-3 transition-all duration-700 ${scrollProgress > 0.05 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
+            }`}
         >
-          <div className="px-4 py-1.5 rounded-full border border-red-500/30 bg-red-950/20 text-red-300 text-xs font-mono tracking-widest backdrop-blur-md animate-pulse">
+          <div className="px-4 py-1.5 rounded-full border border-red-500/30 bg-red-950/40 text-red-300 text-xs font-mono tracking-widest backdrop-blur-md animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.3)]">
             SCROLL TO PLAY 3D DRONE SEQUENCES
           </div>
-          <div className="w-5 h-9 rounded-full border-2 border-red-500/50 flex items-start justify-center p-1">
+          <div className="w-5 h-9 rounded-full border-2 border-red-500/50 flex items-start justify-center p-1 bg-black/40 backdrop-blur-sm">
             <div className="w-1.5 h-2.5 bg-red-500 rounded-full animate-bounce" />
           </div>
         </div>
