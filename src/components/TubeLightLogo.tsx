@@ -780,9 +780,18 @@ export default function TubeLightLogo() {
         </button>
       </header>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile menu overlay — z-[60], above the "About Team Matrix" box and
+          logo group (both z-50): if the user scrolls back up near the top
+          (About visible again, aboutOpacity > 0) and then opens the
+          hamburger menu, the menu used to render at z-[45] — BELOW those
+          z-50 elements — so About's own semi-transparent panels sat on top
+          of the menu, letting its text ghost through instead of showing a
+          clean opaque menu. Reported as "menu not rendering properly, only
+          on the about page" (i.e. only when About's fade-in window is
+          active). NavBar.tsx's mobile menu never hit this because that
+          component has nothing else at z-50 on the pages it's used on. */}
       <div
-        className={`md:hidden fixed inset-0 z-[45] transition-opacity duration-300 ${
+        className={`md:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
           menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
