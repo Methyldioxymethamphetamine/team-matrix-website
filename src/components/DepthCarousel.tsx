@@ -467,7 +467,7 @@ export default function DepthCarousel({
         <>
           <button
             type="button"
-            className="absolute left-4 top-1/2 z-[3000] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-[rgba(18,20,26,0.55)] text-white backdrop-blur-md transition-[background,border-color,transform] duration-200 hover:border-white/40 hover:bg-[rgba(28,31,40,0.85)] active:scale-95"
+            className="absolute left-4 top-1/2 z-[3000] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-[rgba(18,20,26,0.55)] text-white backdrop-blur-md transition-[background,border-color,transform,box-shadow] duration-200 hover:border-red-400/50 hover:bg-[rgba(28,31,40,0.85)] hover:scale-110 hover:shadow-[0_0_18px_rgba(239,68,68,0.35)] active:scale-95"
             aria-label="Previous slide"
             onClick={() => navigateBy(-1)}
           >
@@ -484,7 +484,7 @@ export default function DepthCarousel({
           </button>
           <button
             type="button"
-            className="absolute right-4 top-1/2 z-[3000] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-[rgba(18,20,26,0.55)] text-white backdrop-blur-md transition-[background,border-color,transform] duration-200 hover:border-white/40 hover:bg-[rgba(28,31,40,0.85)] active:scale-95"
+            className="absolute right-4 top-1/2 z-[3000] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-[rgba(18,20,26,0.55)] text-white backdrop-blur-md transition-[background,border-color,transform,box-shadow] duration-200 hover:border-red-400/50 hover:bg-[rgba(28,31,40,0.85)] hover:scale-110 hover:shadow-[0_0_18px_rgba(239,68,68,0.35)] active:scale-95"
             aria-label="Next slide"
             onClick={() => navigateBy(1)}
           >

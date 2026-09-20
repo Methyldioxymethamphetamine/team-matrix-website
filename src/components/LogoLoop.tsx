@@ -238,6 +238,7 @@ export default function LogoLoop({
                       src={item.src}
                       alt={item.alt || item.title || `Sponsor logo ${idx}`}
                       fill
+                      sizes={`${logoHeight}px`}
                       draggable={false}
                       className="object-contain transition-transform duration-300 group-hover:scale-105 pointer-events-none"
                     />

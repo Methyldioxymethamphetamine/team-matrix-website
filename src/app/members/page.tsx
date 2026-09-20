@@ -6,7 +6,7 @@ import NavBar from "@/components/NavBar";
 import DotField from "@/components/DotField";
 import MemberCard from "@/components/MemberCard";
 import CountUp from "@/components/CountUp";
-import { members, type Department } from "@/data/members";
+import type { Member, Department } from "@/data/members";
 
 type FilterValue = "All" | "Leadership" | Department;
 
@@ -23,6 +23,7 @@ export default function MembersPage() {
   const [visible, setVisible] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterValue>("All");
   const [query, setQuery] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,13 +31,28 @@ export default function MembersPage() {
     return () => clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/members")
+      .then((r) => r.json())
+      .then((data: Member[]) => {
+        if (!cancelled) setMembers(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const departmentCount = useMemo(
     () => new Set(members.map((m) => m.department)).size,
-    []
+    [members]
   );
   const leadershipCount = useMemo(
     () => members.filter((m) => m.lead).length,
-    []
+    [members]
   );
 
   const filteredMembers = useMemo(() => {
@@ -54,7 +70,7 @@ export default function MembersPage() {
         m.title.toLowerCase().includes(q);
       return matchesFilter && matchesQuery;
     });
-  }, [activeFilter, query]);
+  }, [members, activeFilter, query]);
 
   // Animate the grid every time the filtered set changes
   useEffect(() => {

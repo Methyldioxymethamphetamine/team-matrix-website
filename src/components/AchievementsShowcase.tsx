@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import DepthCarousel, { type DepthCarouselItem } from "./DepthCarousel";
+import Reveal from "./Reveal";
 import captionsData from "../../public/achievements/captions.json";
 
 interface AchievementCaption {
@@ -38,7 +39,13 @@ function useIsDesktop(breakpointPx = 640) {
   return isDesktop;
 }
 
-export default function AchievementsShowcase() {
+// Rendered as a static, prop-less child of TubeLightLogo, which re-renders on
+// every scroll frame — memoizing means this whole subtree is skipped on
+// every one of those (its own internal state, e.g. the active carousel
+// index, still re-renders it normally — memo only blocks parent-driven
+// re-renders with unchanged props). The DOM node TubeLightLogo's drone-fade
+// entry guard looks up via getElementById is unaffected either way.
+function AchievementsShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const active = captions[activeIndex];
   const isDesktop = useIsDesktop();
@@ -55,9 +62,11 @@ export default function AchievementsShowcase() {
       className="relative z-30 w-full min-h-screen flex flex-col items-center justify-start pt-20 sm:pt-24 pb-6 sm:pb-8 overflow-x-hidden"
       style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
     >
-      <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center drop-shadow-[0_0_20px_rgba(239,68,68,0.25)] mb-2 sm:mb-3 px-4">
-        Achievements
-      </h2>
+      <Reveal>
+        <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center drop-shadow-[0_0_20px_rgba(239,68,68,0.25)] mb-2 sm:mb-3 px-4">
+          Achievements
+        </h2>
+      </Reveal>
 
       {/* DepthCarousel centers its cards vertically within this box's full height, so its
           height is kept close to the card's own height (cardHeight above) rather than
@@ -85,10 +94,19 @@ export default function AchievementsShowcase() {
           above, which shrinks children to fit their content by default, so max-w alone
           would only matter for captions already longer than the old 2xl cap. */}
       <div className="mt-6 sm:mt-4 w-full max-w-2xl sm:max-w-[84rem] mx-auto text-center px-4">
-        <p className="font-sans text-lg sm:text-2xl md:text-3xl text-white leading-snug transition-opacity duration-300">
+        {/* key={activeIndex} remounts the <p> on every slide change, restarting
+            the fadeInUp animation — a plain transition class here does nothing
+            since the text swaps instantly with no property actually changing. */}
+        <p
+          key={activeIndex}
+          className="font-sans text-lg sm:text-2xl md:text-3xl text-white leading-snug"
+          style={{ animation: "fadeInUp 450ms cubic-bezier(0.16,1,0.3,1)" }}
+        >
           {active.caption}
         </p>
       </div>
     </section>
   );
 }
+
+export default memo(AchievementsShowcase);

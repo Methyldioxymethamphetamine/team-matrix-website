@@ -8,10 +8,11 @@ import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
 import DotField from "./DotField";
 import GradualBlur from "./GradualBlur";
-import Strands from "./Strands";
 import SponsorsSection from "./SponsorsSection";
 import Footer from "./Footer";
 import AchievementsShowcase from "./AchievementsShowcase";
+import ScrollProgressBar from "./ScrollProgressBar";
+import Reveal from "./Reveal";
 
 const DRONE_1_COUNT = 60;
 
@@ -24,6 +25,23 @@ export default function TubeLightLogo() {
   const logoGroupRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const applyBtnRef = useRef<HTMLAnchorElement>(null);
+
+  // Magnetic hover for the Apply Now button — nudges it toward the cursor
+  // within its own bounds. Uses a ref instead of state so mousemove (which
+  // fires far more often than a re-render should) never touches React.
+  const handleApplyMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const el = applyBtnRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const relX = (e.clientX - rect.left - rect.width / 2) * 0.25;
+    const relY = (e.clientY - rect.top - rect.height / 2) * 0.25;
+    el.style.transform = `translate(${relX}px, ${relY}px) scale(1.05)`;
+  };
+  const handleApplyMouseLeave = () => {
+    const el = applyBtnRef.current;
+    if (el) el.style.transform = "translate(0px, 0px) scale(1)";
+  };
   // Ratchet for the logo's center->nav scroll-scrub: the highest progress
   // reached so far, so scrolling back up doesn't pull the logo back toward
   // center once it has arrived (or partway arrived) at the nav slot.
@@ -501,6 +519,8 @@ export default function TubeLightLogo() {
 
   return (
     <div ref={containerRef} className="relative w-full bg-black text-white select-none">
+      <ScrollProgressBar />
+
       {/* Interactive Canvas DotField Background */}
       <div className="fixed inset-0 z-0">
         <DotField
@@ -540,7 +560,7 @@ export default function TubeLightLogo() {
             <Link
               key={label}
               href={href}
-              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
+              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)] active:scale-95 whitespace-nowrap"
             >
               {label}
             </Link>
@@ -561,7 +581,7 @@ export default function TubeLightLogo() {
             <Link
               key={label}
               href={href}
-              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
+              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)] active:scale-95 whitespace-nowrap"
             >
               {label}
             </Link>
@@ -955,38 +975,49 @@ export default function TubeLightLogo() {
                 background: "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(239,68,68,0.10) 0%, transparent 70%)",
               }}
             />
-            <div className="relative flex items-center gap-2.5 px-3 py-1 rounded-full bg-red-950/50 border border-red-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="font-mono text-[9px] tracking-[0.1em] sm:text-[10px] sm:tracking-[0.3em] text-red-400 uppercase whitespace-nowrap">Team Matrix / Recruitment</span>
-            </div>
+            <Reveal>
+              <div className="relative flex items-center gap-2.5 px-3 py-1 rounded-full bg-red-950/50 border border-red-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="font-mono text-[9px] tracking-[0.1em] sm:text-[10px] sm:tracking-[0.3em] text-red-400 uppercase whitespace-nowrap">Team Matrix / Recruitment</span>
+              </div>
+            </Reveal>
 
-            <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight">
-              Ready to Build <span className="text-red-500 drop-shadow-[0_0_24px_rgba(239,68,68,0.5)]">With Us?</span>
-            </h2>
+            <Reveal delayMs={80}>
+              <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight">
+                Ready to Build <span className="text-red-500 drop-shadow-[0_0_24px_rgba(239,68,68,0.5)]">With Us?</span>
+              </h2>
+            </Reveal>
 
-            <p className="relative max-w-md text-sm sm:text-base text-slate-400 font-sans leading-relaxed">
-              We&apos;re always looking for passionate engineers, designers, and builders to join Team Matrix.
-            </p>
+            <Reveal delayMs={160}>
+              <p className="relative max-w-md text-sm sm:text-base text-slate-400 font-sans leading-relaxed">
+                We&apos;re always looking for passionate engineers, designers, and builders to join Team Matrix.
+              </p>
+            </Reveal>
 
-            <Link
-              href="/apply"
-              className="
-                relative group mt-1
-                px-10 py-3 rounded-full
-                bg-red-600/90 text-white
-                font-[family-name:var(--font-black-ops)] text-base sm:text-lg tracking-[0.1em]
-                border border-red-400/60
-                transition-all duration-300
-                hover:bg-red-500 hover:scale-105
-                active:scale-95
-                shadow-[0_0_30px_rgba(239,68,68,0.35),0_0_60px_rgba(239,68,68,0.15)]
-                hover:shadow-[0_0_40px_rgba(239,68,68,0.55),0_0_80px_rgba(239,68,68,0.25)]
-                overflow-hidden
-              "
-            >
-              <span className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-              <span className="relative z-10">APPLY NOW</span>
-            </Link>
+            <Reveal delayMs={240}>
+              <Link
+                ref={applyBtnRef}
+                href="/apply"
+                onMouseMove={handleApplyMouseMove}
+                onMouseLeave={handleApplyMouseLeave}
+                className="
+                  relative group mt-1
+                  inline-block
+                  px-10 py-3 rounded-full
+                  bg-red-600/90 text-white
+                  font-[family-name:var(--font-black-ops)] text-base sm:text-lg tracking-[0.1em]
+                  border border-red-400/60
+                  transition-[background-color,box-shadow,transform] duration-200 ease-out
+                  hover:bg-red-500
+                  shadow-[0_0_30px_rgba(239,68,68,0.35),0_0_60px_rgba(239,68,68,0.15)]
+                  hover:shadow-[0_0_40px_rgba(239,68,68,0.55),0_0_80px_rgba(239,68,68,0.25)]
+                  overflow-hidden
+                "
+              >
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                <span className="relative z-10">APPLY NOW</span>
+              </Link>
+            </Reveal>
           </section>
         </div>
 

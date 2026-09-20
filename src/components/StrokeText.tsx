@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -287,4 +287,7 @@ const StrokeText = ({
   );
 };
 
-export default StrokeText;
+// TubeLightLogo re-renders on every scroll frame; the 4 StrokeText instances
+// there are always called with the same literal props, so memoizing skips
+// re-invoking this (GSAP-driven, DOM-measuring) component on every one of them.
+export default memo(StrokeText);

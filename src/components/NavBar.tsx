@@ -58,7 +58,7 @@ export default function NavBar() {
               className={`px-4 py-1.5 rounded-full text-sm font-sans font-medium transition-all duration-200 active:scale-95 whitespace-nowrap ${
                 pathname === href
                   ? "text-white bg-white/[0.10]"
-                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08]"
+                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)]"
               }`}
             >
               {label}
@@ -74,7 +74,7 @@ export default function NavBar() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <CircuitRing />
           </div>
-          <Link href="/" className="relative z-10 w-12 sm:w-14 md:w-16 block">
+          <Link href="/" className="relative z-10 w-12 sm:w-14 md:w-16 block transition-transform duration-300 hover:scale-110">
             <Image
               src="/tempfiles/matrixlogo (2).png"
               alt="Matrix Logo"
@@ -95,7 +95,7 @@ export default function NavBar() {
               className={`px-4 py-1.5 rounded-full text-sm font-sans font-medium transition-all duration-200 active:scale-95 whitespace-nowrap ${
                 pathname === href
                   ? "text-white bg-white/[0.10]"
-                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08]"
+                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)]"
               }`}
             >
               {label}

@@ -1,6 +1,8 @@
 // Works / Our Stories — type definitions
 // Images are loaded dynamically from /public/stories/ via GET /api/works.
-// The admin drops .jpg / .jpeg / .png / .webp files there and they appear automatically.
+// Titles/stories come from /public/stories/captions.json (keyed by filename),
+// falling back to a filename-derived title when a file has no entry there.
+// Managed through /admin, or by editing captions.json + dropping files directly.
 
 export interface WorkItem {
   id: string;

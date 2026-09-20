@@ -59,11 +59,13 @@ const DotField = memo(({
   const mouseRef = useRef({ x: -9999, y: -9999, prevX: -9999, prevY: -9999, speed: 0 });
   const rafRef = useRef<number | null>(null);
   const sizeRef = useRef({ w: 0, h: 0, offsetX: 0, offsetY: 0 });
+  const gradientRef = useRef<CanvasGradient | null>(null);
   const glowOpacity = useRef(0);
   const engagement = useRef(0);
   const propsRef = useRef<Record<string, unknown>>({});
   propsRef.current = { dotRadius, dotSpacing, cursorRadius, cursorForce, bulgeOnly, bulgeStrength, sparkle, waveAmplitude, gradientFrom, gradientTo };
   const rebuildRef = useRef<(() => void) | null>(null);
+  const rebuildGradientRef = useRef<(() => void) | null>(null);
   const id = useId();
   const glowId = `dot-field-glow-${id.replace(/:/g, '')}`;
 
@@ -79,6 +81,17 @@ const DotField = memo(({
     function resize() {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(doResize, 100);
+    }
+
+    // The fill gradient only depends on canvas size + its two colors, none of
+    // which change between frames — building it fresh every tick (as this
+    // used to) allocates a new CanvasGradient 60x/second for no reason.
+    function rebuildGradient(w: number, h: number) {
+      const p = propsRef.current;
+      const grad = ctx!.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, p.gradientFrom as string);
+      grad.addColorStop(1, p.gradientTo as string);
+      gradientRef.current = grad;
     }
 
     function doResize() {
@@ -101,6 +114,7 @@ const DotField = memo(({
       };
 
       buildDots(w, h);
+      rebuildGradient(w, h);
     }
 
     function buildDots(w: number, h: number) {
@@ -168,10 +182,9 @@ const DotField = memo(({
 
       ctx!.clearRect(0, 0, w, h);
 
-      const grad = ctx!.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, p.gradientFrom as string);
-      grad.addColorStop(1, p.gradientTo as string);
-      ctx!.fillStyle = grad;
+      if (gradientRef.current) {
+        ctx!.fillStyle = gradientRef.current;
+      }
 
       const cr = p.cursorRadius as number;
       const crSq = cr * cr;
@@ -250,6 +263,10 @@ const DotField = memo(({
       const { w, h } = sizeRef.current;
       if (w > 0 && h > 0) buildDots(w, h);
     };
+    rebuildGradientRef.current = () => {
+      const { w, h } = sizeRef.current;
+      if (w > 0 && h > 0) rebuildGradient(w, h);
+    };
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -264,6 +281,10 @@ const DotField = memo(({
   useEffect(() => {
     rebuildRef.current?.();
   }, [dotRadius, dotSpacing]);
+
+  useEffect(() => {
+    rebuildGradientRef.current?.();
+  }, [gradientFrom, gradientTo]);
 
   return (
     <div className={`dot-field-container ${className}`.trim()} style={style} {...rest}>

@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import ProfileCard from "./ProfileCard";
-import { members } from "@/data/members";
+import type { Member } from "@/data/members";
 
 interface MembersSectionProps {
   visible: boolean;
@@ -13,6 +14,23 @@ const CARD_GRADIENT =
 const CARD_GLOW = "rgba(239, 68, 68, 0.5)";
 
 export default function MembersSection({ visible }: MembersSectionProps) {
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/members")
+      .then((r) => r.json())
+      .then((data: Member[]) => {
+        if (!cancelled) setMembers(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section
       aria-label="Members"
