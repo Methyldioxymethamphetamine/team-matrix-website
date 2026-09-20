@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 // HTML, the JS bundle, and DevTools' Sources tab.
 //
 // This is intentionally the ONLY place either secret is written.
-const ADMIN_PASSWORD = "TeamMatrix#Nashik2026!";
+const ADMIN_PASSWORD = "TeamMatrix2026";
 const SESSION_SECRET = "b7e2f4a1c9d6485fae3d0c7b1a9e5f62d4c8b3a7e1f906c2ad5b8e4f7139c0d2";
 
 export const ADMIN_SESSION_COOKIE = "tm_admin_session";
