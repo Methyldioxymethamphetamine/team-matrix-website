@@ -168,6 +168,17 @@ function DeleteButton({ onClick, busy }: { onClick: () => void; busy: boolean })
   );
 }
 
+function EditButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider border border-white/15 text-slate-300 hover:bg-white/10 transition-colors"
+    >
+      Edit
+    </button>
+  );
+}
+
 // ── Gallery tab ──────────────────────────────────────────────────────────
 
 function GalleryTab() {
@@ -179,6 +190,13 @@ function GalleryTab() {
   const [story, setStory] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+
+  const [editingImg, setEditingImg] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editStory, setEditStory] = useState("");
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const load = () => {
     fetch("/api/works")
@@ -215,6 +233,37 @@ function GalleryTab() {
     setRemovingImg(img);
     await fetch(`/api/admin/gallery?img=${encodeURIComponent(img)}`, { method: "DELETE" });
     setRemovingImg(null);
+    load();
+  };
+
+  const startEdit = (item: WorkItem) => {
+    setEditingImg(item.img);
+    setEditTitle(item.title ?? "");
+    setEditStory(item.story ?? "");
+    setEditFile(null);
+    setEditError("");
+  };
+
+  const cancelEdit = () => setEditingImg(null);
+
+  const handleSaveEdit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingImg) return;
+    setSaving(true);
+    setEditError("");
+    const form = new FormData();
+    form.append("img", editingImg);
+    form.append("title", editTitle);
+    form.append("story", editStory);
+    if (editFile) form.append("image", editFile);
+    const res = await fetch("/api/admin/gallery", { method: "PATCH", body: form });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEditError(data.error || "Failed to save changes");
+      return;
+    }
+    setEditingImg(null);
     load();
   };
 
@@ -257,17 +306,70 @@ function GalleryTab() {
           <p className="text-slate-500 text-sm">Loading…</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {items.map((item) => (
-              <div key={item.img} className="relative rounded-xl overflow-hidden bg-black/40 border border-white/5">
-                <div className="relative aspect-square">
-                  <Image src={item.img} alt={item.title ?? ""} fill className="object-cover" />
+            {items.map((item) =>
+              editingImg === item.img ? (
+                <form
+                  key={item.img}
+                  onSubmit={handleSaveEdit}
+                  className="col-span-2 sm:col-span-3 md:col-span-4 rounded-xl bg-black/40 border border-red-500/30 p-4 space-y-3"
+                >
+                  <div className="flex gap-4">
+                    <div className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden">
+                      <Image src={item.img} alt={item.title ?? ""} fill className="object-cover" />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <FieldLabel>Replace image (optional)</FieldLabel>
+                        <input
+                          type="file"
+                          accept="image/webp,image/png,image/jpeg"
+                          onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
+                          className="text-sm text-slate-300"
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Title</FieldLabel>
+                        <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <FieldLabel>Content</FieldLabel>
+                        <textarea value={editStory} onChange={(e) => setEditStory(e.target.value)} rows={3} className={inputClass} />
+                      </div>
+                    </div>
+                  </div>
+                  {editError && <p className="text-red-400 text-xs font-mono">{editError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-5 py-2 rounded-full bg-red-600/90 hover:bg-red-500 disabled:opacity-40 text-white text-sm font-semibold transition-colors"
+                    >
+                      {saving ? "Saving…" : "Save Changes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      className="px-5 py-2 rounded-full border border-white/15 text-slate-300 hover:bg-white/10 text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div key={item.img} className="relative rounded-xl overflow-hidden bg-black/40 border border-white/5">
+                  <div className="relative aspect-square">
+                    <Image src={item.img} alt={item.title ?? ""} fill className="object-cover" />
+                  </div>
+                  <div className="p-2 space-y-1.5">
+                    <p className="text-xs text-slate-300 truncate">{item.title}</p>
+                    <div className="flex gap-1.5">
+                      <EditButton onClick={() => startEdit(item)} />
+                      <DeleteButton onClick={() => handleRemove(item.img)} busy={removingImg === item.img} />
+                    </div>
+                  </div>
                 </div>
-                <div className="p-2 space-y-1.5">
-                  <p className="text-xs text-slate-300 truncate">{item.title}</p>
-                  <DeleteButton onClick={() => handleRemove(item.img)} busy={removingImg === item.img} />
-                </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
       </SectionCard>
@@ -285,6 +387,12 @@ function SponsorsTab() {
   const [alt, setAlt] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAlt, setEditAlt] = useState("");
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const load = () => {
     fetch("/api/sponsors")
@@ -319,6 +427,35 @@ function SponsorsTab() {
     setRemovingId(id);
     await fetch(`/api/admin/sponsors?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     setRemovingId(null);
+    load();
+  };
+
+  const startEdit = (item: SponsorEntry) => {
+    setEditingId(item.id);
+    setEditAlt(item.alt);
+    setEditFile(null);
+    setEditError("");
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const handleSaveEdit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSaving(true);
+    setEditError("");
+    const form = new FormData();
+    form.append("id", editingId);
+    form.append("alt", editAlt);
+    if (editFile) form.append("logo", editFile);
+    const res = await fetch("/api/admin/sponsors", { method: "PATCH", body: form });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEditError(data.error || "Failed to save changes");
+      return;
+    }
+    setEditingId(null);
     load();
   };
 
@@ -357,15 +494,64 @@ function SponsorsTab() {
           <p className="text-slate-500 text-sm">Loading…</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {items.map((item) => (
-              <div key={item.id} className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-3 flex flex-col items-center gap-2">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white">
-                  <Image src={item.src} alt={item.alt} fill className="object-contain p-1.5" />
+            {items.map((item) =>
+              editingId === item.id ? (
+                <form
+                  key={item.id}
+                  onSubmit={handleSaveEdit}
+                  className="col-span-2 sm:col-span-3 md:col-span-4 rounded-xl bg-black/40 border border-red-500/30 p-4 space-y-3"
+                >
+                  <div className="flex gap-4">
+                    <div className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden bg-white">
+                      <Image src={item.src} alt={item.alt} fill className="object-contain p-1.5" />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <FieldLabel>Replace logo (optional)</FieldLabel>
+                        <input
+                          type="file"
+                          accept="image/webp,image/png,image/jpeg"
+                          onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
+                          className="text-sm text-slate-300"
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Sponsor name</FieldLabel>
+                        <input value={editAlt} onChange={(e) => setEditAlt(e.target.value)} className={inputClass} />
+                      </div>
+                    </div>
+                  </div>
+                  {editError && <p className="text-red-400 text-xs font-mono">{editError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-5 py-2 rounded-full bg-red-600/90 hover:bg-red-500 disabled:opacity-40 text-white text-sm font-semibold transition-colors"
+                    >
+                      {saving ? "Saving…" : "Save Changes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      className="px-5 py-2 rounded-full border border-white/15 text-slate-300 hover:bg-white/10 text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div key={item.id} className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-3 flex flex-col items-center gap-2">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white">
+                    <Image src={item.src} alt={item.alt} fill className="object-contain p-1.5" />
+                  </div>
+                  <p className="text-xs text-slate-300 truncate w-full text-center">{item.alt}</p>
+                  <div className="flex gap-1.5">
+                    <EditButton onClick={() => startEdit(item)} />
+                    <DeleteButton onClick={() => handleRemove(item.id)} busy={removingId === item.id} />
+                  </div>
                 </div>
-                <p className="text-xs text-slate-300 truncate w-full text-center">{item.alt}</p>
-                <DeleteButton onClick={() => handleRemove(item.id)} busy={removingId === item.id} />
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
       </SectionCard>
@@ -388,6 +574,17 @@ function MembersTab() {
   const [lead, setLead] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editHandle, setEditHandle] = useState("");
+  const [editStatus, setEditStatus] = useState("Active");
+  const [editDepartment, setEditDepartment] = useState<Department>("Mechanical");
+  const [editLead, setEditLead] = useState(false);
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const load = () => {
     fetch("/api/members")
@@ -432,6 +629,45 @@ function MembersTab() {
     setRemovingId(id);
     await fetch(`/api/admin/members?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     setRemovingId(null);
+    load();
+  };
+
+  const startEdit = (item: Member) => {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditTitle(item.title);
+    setEditHandle(item.handle);
+    setEditStatus(item.status);
+    setEditDepartment(item.department);
+    setEditLead(!!item.lead);
+    setEditFile(null);
+    setEditError("");
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const handleSaveEdit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setSaving(true);
+    setEditError("");
+    const form = new FormData();
+    form.append("id", editingId);
+    form.append("name", editName);
+    form.append("title", editTitle);
+    form.append("handle", editHandle);
+    form.append("status", editStatus);
+    form.append("department", editDepartment);
+    form.append("lead", String(editLead));
+    if (editFile) form.append("avatar", editFile);
+    const res = await fetch("/api/admin/members", { method: "PATCH", body: form });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEditError(data.error || "Failed to save changes");
+      return;
+    }
+    setEditingId(null);
     load();
   };
 
@@ -502,16 +738,95 @@ function MembersTab() {
           <p className="text-slate-500 text-sm">Loading…</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {items.map((item) => (
-              <div key={item.id} className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-3 flex flex-col items-center gap-2">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                  <Image src={item.avatarUrl} alt={item.name} fill className="object-cover" />
+            {items.map((item) =>
+              editingId === item.id ? (
+                <form
+                  key={item.id}
+                  onSubmit={handleSaveEdit}
+                  className="col-span-2 sm:col-span-3 md:col-span-4 rounded-xl bg-black/40 border border-red-500/30 p-4 space-y-3"
+                >
+                  <div className="flex gap-4">
+                    <div className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden">
+                      <Image src={item.avatarUrl} alt={item.name} fill className="object-cover" />
+                    </div>
+                    <div className="flex-1 grid sm:grid-cols-2 gap-3">
+                      <div className="sm:col-span-2">
+                        <FieldLabel>Replace photo (optional)</FieldLabel>
+                        <input
+                          type="file"
+                          accept="image/webp,image/png,image/jpeg"
+                          onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
+                          className="text-sm text-slate-300"
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Name</FieldLabel>
+                        <input value={editName} onChange={(e) => setEditName(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <FieldLabel>Title / Role</FieldLabel>
+                        <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <FieldLabel>Handle (no @)</FieldLabel>
+                        <input value={editHandle} onChange={(e) => setEditHandle(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <FieldLabel>Status</FieldLabel>
+                        <input value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className={inputClass} />
+                      </div>
+                      <div>
+                        <FieldLabel>Department</FieldLabel>
+                        <select
+                          value={editDepartment}
+                          onChange={(e) => setEditDepartment(e.target.value as Department)}
+                          className={inputClass}
+                        >
+                          {DEPARTMENTS.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm text-slate-300">
+                        <input type="checkbox" checked={editLead} onChange={(e) => setEditLead(e.target.checked)} />
+                        Show in Leadership filter
+                      </label>
+                    </div>
+                  </div>
+                  {editError && <p className="text-red-400 text-xs font-mono">{editError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-5 py-2 rounded-full bg-red-600/90 hover:bg-red-500 disabled:opacity-40 text-white text-sm font-semibold transition-colors"
+                    >
+                      {saving ? "Saving…" : "Save Changes"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      className="px-5 py-2 rounded-full border border-white/15 text-slate-300 hover:bg-white/10 text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div key={item.id} className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-3 flex flex-col items-center gap-2">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                    <Image src={item.avatarUrl} alt={item.name} fill className="object-cover" />
+                  </div>
+                  <p className="text-xs text-slate-200 truncate w-full text-center">{item.name}</p>
+                  <p className="text-[11px] text-slate-500 truncate w-full text-center">{item.title}</p>
+                  <div className="flex gap-1.5">
+                    <EditButton onClick={() => startEdit(item)} />
+                    <DeleteButton onClick={() => handleRemove(item.id)} busy={removingId === item.id} />
+                  </div>
                 </div>
-                <p className="text-xs text-slate-200 truncate w-full text-center">{item.name}</p>
-                <p className="text-[11px] text-slate-500 truncate w-full text-center">{item.title}</p>
-                <DeleteButton onClick={() => handleRemove(item.id)} busy={removingId === item.id} />
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
       </SectionCard>

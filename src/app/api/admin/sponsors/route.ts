@@ -36,6 +36,42 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true, sponsor: entry });
 }
 
+export async function PATCH(request: NextRequest) {
+  const unauthorized = requireAuth(request);
+  if (unauthorized) return unauthorized;
+
+  const form = await request.formData();
+  const id = String(form.get("id") ?? "");
+  const file = form.get("logo");
+  const alt = String(form.get("alt") ?? "").trim();
+
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
+  }
+
+  const sponsors = readJsonFile<SponsorEntry[]>(DATA_PATH, []);
+  const target = sponsors.find((s) => s.id === id);
+  if (!target) {
+    return NextResponse.json({ ok: false, error: "Sponsor not found" }, { status: 404 });
+  }
+
+  if (alt) target.alt = alt;
+
+  if (file instanceof File && file.size > 0) {
+    let newSrc: string;
+    try {
+      newSrc = await saveUploadedImage(file, "sponsors");
+    } catch (err) {
+      return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
+    }
+    deletePublicFile(target.src);
+    target.src = newSrc;
+  }
+
+  writeJsonFile(DATA_PATH, sponsors);
+  return NextResponse.json({ ok: true, sponsor: target });
+}
+
 export async function DELETE(request: NextRequest) {
   const unauthorized = requireAuth(request);
   if (unauthorized) return unauthorized;

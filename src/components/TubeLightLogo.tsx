@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import gsap from "gsap";
@@ -12,9 +12,23 @@ import SponsorsSection from "./SponsorsSection";
 import Footer from "./Footer";
 import AchievementsShowcase from "./AchievementsShowcase";
 import ScrollProgressBar from "./ScrollProgressBar";
+import ScrollLineSidebar from "./ScrollLineSidebar";
 import Reveal from "./Reveal";
 
 const DRONE_1_COUNT = 60;
+
+// Labels for the left-edge scroll sidebar, and the scrollY (in viewport
+// heights) each one jumps to on click — picked to land inside that stage's
+// own "fully visible" hold window rather than right at its fade-in edge.
+// Kept in sync by hand with the pin/crossfade constants in the scroll rAF
+// loop below (ACH_START_VH/ACH_BUDGET_VH, SPONSORS_START_VH/SPONSORS_BUDGET_VH).
+const SCROLL_STAGES = [
+  { label: "About", targetVh: 0 },
+  { label: "Drone", targetVh: 0.6 },
+  { label: "Achievements", targetVh: 1.9 },
+  { label: "Sponsors", targetVh: 3.93 },
+  { label: "Apply Now", targetVh: 5.6 },
+];
 
 // Runs before paint on the client (no SSR flash of the wrong value), falls
 // back to a plain effect on the server where layout effects are a no-op.
@@ -57,7 +71,9 @@ export default function TubeLightLogo() {
   const [isMovedToNav, setIsMovedToNav] = useState(false);
   const [readyForScroll, setReadyForScroll] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [droneOpacity, setDroneOpacity] = useState(0);
   const [achievementsProgress, setAchievementsProgress] = useState(0);
+  const [sponsorsProgress, setSponsorsProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   // Reading window.innerWidth/innerHeight during render (needed for the logo
   // scroll-scrub below) would differ between the server's render (no window)
@@ -66,6 +82,27 @@ export default function TubeLightLogo() {
   // before paint, well before the user could have scrolled.
   const [mounted, setMounted] = useState(false);
   useIsomorphicLayoutEffect(() => setMounted(true), []);
+
+  // Reached via the standalone NavBar's "About" link (`/#about`, used on every
+  // other route) — skip the tubelight flicker replay and land scrolled to the
+  // very top instead of jumping to the #about anchor mid-page, since the
+  // scroll-scrubbed drone/about animations below assume a continuous scroll
+  // from 0, not a cold jump to 100vh. Also true for `prefers-reduced-motion`
+  // (same DepthCarousel/StrokeText check elsewhere in this codebase) — a
+  // reduced-motion visitor shouldn't get the flicker forced on them either.
+  // Read synchronously in a layout effect (not a lazy useState initializer)
+  // so it still commits before paint without diverging from the server's
+  // hash-less initial render.
+  const [skipIntro, setSkipIntro] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) setPrefersReducedMotion(true);
+    if (window.location.hash === "#about" || reducedMotion) {
+      setSkipIntro(true);
+    }
+  }, []);
 
   // Measure the header's real height (top-4 offset + its own box height) so
   // the docked logo can center on the exact same row as the nav links,
@@ -147,14 +184,21 @@ export default function TubeLightLogo() {
       }
     };
 
-    // 1) Sequence 1: drone.webm (60 frames)
+    // 1) Sequence 1: drone.webm (60 frames) — a half-resolution (960x540)
+    // tier lives alongside the full 1920x1080 one specifically for narrow
+    // viewports: mobile downloads ~1.6MB instead of ~4.1MB for this sequence
+    // (measured), and the canvas draws it scaled up anyway on a phone-sized
+    // screen so there's no visible quality loss. Read once at load time
+    // rather than reactively — this is a one-time asset-selection decision,
+    // not something that should refetch everything on an orientation change.
+    const droneFrameDir = window.innerWidth < 768 ? "drone_frames_mobile" : "drone_frames";
     const imgs1: HTMLImageElement[] = [];
     for (let i = 1; i <= DRONE_1_COUNT; i++) {
       const img = new window.Image();
       const idx = String(i).padStart(3, "0");
       img.onload = incrementLoad;
       img.onerror = incrementLoad;
-      img.src = `/tempfiles/drone_frames/frame_${idx}.webp`;
+      img.src = `/tempfiles/${droneFrameDir}/frame_${idx}.webp`;
       imgs1.push(img);
     }
     setSeq1Images(imgs1);
@@ -209,11 +253,35 @@ export default function TubeLightLogo() {
     };
   }, [readyForScroll, isMovedToNav]);
 
-  // Tubelight Intro GSAP Sequence
+  // Tubelight Intro GSAP Sequence — skipped when `skipIntro` is set (see
+  // above), jumping straight to the flicker's fully-lit end state instead.
   useGSAP(
     () => {
       const logoGroup = logoGroupRef.current;
       if (!logoGroup) return;
+
+      if (skipIntro) {
+        gsap.set(logoGroup, {
+          opacity: 1,
+          filter: "drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.4))",
+        });
+        setIntroFinished(true);
+        // The infinite pulsing hum is exactly the kind of motion
+        // prefers-reduced-motion asks sites to drop — the #about-redirect
+        // case (skipIntro without reduced motion) keeps it for visual
+        // consistency with a normal visit; a reduced-motion visitor gets a
+        // static glow instead.
+        if (!prefersReducedMotion) {
+          gsap.to(logoGroup, {
+            filter: "drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 32px rgba(239, 68, 68, 0.35))",
+            duration: 2.8,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+          });
+        }
+        return;
+      }
 
       // Lock body scrolling during tubelight flicker intro
       if (typeof document !== "undefined") {
@@ -253,7 +321,7 @@ export default function TubeLightLogo() {
         delay: tl.duration(),
       });
     },
-    { scope: containerRef }
+    { scope: containerRef, dependencies: [skipIntro], revertOnUpdate: true }
   );
 
   // 3D Canvas Frame Renderer for Drone Sequence
@@ -339,6 +407,7 @@ export default function TubeLightLogo() {
         opacity = 0;
         localProgress = 1;
       }
+      setDroneOpacity(opacity);
 
       // ─── ACHIEVEMENTS PIN + CROSSFADE ───────────────────────────────────
       // Achievements is `position: fixed` too (see JSX below), driven by its
@@ -354,6 +423,18 @@ export default function TubeLightLogo() {
       const achBudgetPx = ACH_BUDGET_VH * window.innerHeight;
       const achP = Math.min(1, Math.max(0, (scrollY - achStartPx) / achBudgetPx));
       setAchievementsProgress(achP);
+
+      // Sponsors pin/crossfade — same recipe as Achievements above. Its window
+      // starts at 350vh, exactly where Achievements' own fade-out begins
+      // (achStartPx + 0.786*achBudgetPx = 130vh + 220vh = 350vh), so the two
+      // genuinely cross-dissolve instead of Sponsors merely sliding up via
+      // normal scroll once Achievements has already gone fully transparent.
+      const SPONSORS_START_VH = 3.5;
+      const SPONSORS_BUDGET_VH = 2.0; // fade-in (0.214) + hold (0.572) + fade-out (0.214), same split as Achievements
+      const sponsorsStartPx = SPONSORS_START_VH * window.innerHeight;
+      const sponsorsBudgetPx = SPONSORS_BUDGET_VH * window.innerHeight;
+      const sponsorsP = Math.min(1, Math.max(0, (scrollY - sponsorsStartPx) / sponsorsBudgetPx));
+      setSponsorsProgress(sponsorsP);
 
       // Once fully faded there is nothing left to draw — clear the canvas
       // once and then leave it alone instead of re-clearing and re-measuring
@@ -461,6 +542,40 @@ export default function TubeLightLogo() {
     achievementsOpacity = Math.max(0, 1 - (achievementsProgress - 0.786) / 0.214); // crossfades out into Sponsors
   }
 
+  // Sponsors pin/crossfade — see the SPONSORS_START_VH/SPONSORS_BUDGET_VH
+  // comment in the scroll rAF loop above. Same fade-in/hold/fade-out split
+  // as Achievements.
+  let sponsorsOpacity = 0;
+  if (sponsorsProgress < 0.214) {
+    sponsorsOpacity = sponsorsProgress / 0.214; // crossfades in against Achievements' own fade-out
+  } else if (sponsorsProgress < 0.786) {
+    sponsorsOpacity = 1; // held on screen
+  } else {
+    sponsorsOpacity = Math.max(0, 1 - (sponsorsProgress - 0.786) / 0.214); // crossfades out into the Apply CTA
+  }
+
+  // Apply CTA "weight" for the scroll sidebar — ramps 0->1 across exactly the
+  // same window Sponsors ramps 1->0, so the sidebar hands off cleanly.
+  const applyWeight = Math.min(1, Math.max(0, (sponsorsProgress - 0.786) / 0.214));
+
+  // Per-stage weights (0-1) for the scroll-driven sidebar — see ScrollLineSidebar.
+  const scrollStageWeights: [number, number, number, number, number] = [
+    aboutOpacity,
+    droneOpacity,
+    achievementsOpacity,
+    sponsorsOpacity,
+    applyWeight,
+  ];
+
+  // Stable reference (no deps — only reads the module-level SCROLL_STAGES
+  // constant and window) so ScrollLineSidebar's memo comparator, which checks
+  // this by identity, isn't defeated by a new closure every scroll frame.
+  const handleScrollStageSelect = useCallback((index: number) => {
+    const stage = SCROLL_STAGES[index];
+    if (!stage || typeof window === "undefined") return;
+    window.scrollTo({ top: stage.targetVh * window.innerHeight, behavior: "smooth" });
+  }, []);
+
   // Auto pause about-video when user scrolls away
   useEffect(() => {
     if (aboutOpacity < 0.05 && videoRef.current && !videoRef.current.paused) {
@@ -517,6 +632,12 @@ export default function TubeLightLogo() {
         : viewportWidth >= 640
           ? { start: 288, end: 51 }
           : { start: 208, end: 43 };
+  // Each GradualBlur div is its own full-viewport-width backdrop-filter layer
+  // — real GPU compositing cost, worse on mobile GPUs. Halving the layer
+  // count below the same 768px breakpoint used elsewhere keeps the fade
+  // visually similar (still a smooth gradient, just fewer steps) while
+  // cutting that cost roughly in half on phones.
+  const gradualBlurDivCount = viewportWidth < 768 ? 4 : 8;
   const logoSize = lerp(logoGeometry.start, logoGeometry.end, logoNavT);
   const logoTopEdge = lerp(
     viewportHeight / 2 - logoGeometry.start / 2,
@@ -562,7 +683,7 @@ export default function TubeLightLogo() {
           {([
             { label: "About",   href: "#about"    },
             { label: "Members", href: "/members"  },
-            { label: "Gallery", href: "/gallery"  },
+            { label: "Stories", href: "/gallery"  },
           ] as { label: string; href: string }[]).map(({ label, href }) => (
             <Link
               key={label}
@@ -635,7 +756,7 @@ export default function TubeLightLogo() {
           {([
             { label: "About",    href: "#about"    },
             { label: "Members",  href: "/members"  },
-            { label: "Gallery",  href: "/gallery"  },
+            { label: "Stories",  href: "/gallery"  },
             { label: "Alumni",   href: "/alumni"   },
             { label: "Projects", href: "/projects" },
           ] as { label: string; href: string }[]).map(({ label, href }) => (
@@ -657,6 +778,16 @@ export default function TubeLightLogo() {
           </Link>
         </nav>
       </div>
+
+      {/* SCROLL PROGRESS SIDEBAR — About/Drone/Achievements/Sponsors/Apply,
+          each item's line + label weighted by that stage's own crossfade
+          opacity, fading in once the header itself does. Desktop only. */}
+      <ScrollLineSidebar
+        stages={SCROLL_STAGES}
+        weights={scrollStageWeights}
+        visible={isMovedToNav}
+        onSelect={handleScrollStageSelect}
+      />
 
       {/* LOGO & TEXT ANIMATION CONTAINER */}
       <div ref={logoGroupRef} className="fixed inset-0 z-50 pointer-events-none">
@@ -919,7 +1050,7 @@ export default function TubeLightLogo() {
         position="top"
         height="5.5rem"
         strength={3}
-        divCount={8}
+        divCount={gradualBlurDivCount}
         curve="bezier"
         exponential={true}
         zIndex={35}
@@ -931,7 +1062,7 @@ export default function TubeLightLogo() {
         position="bottom"
         height="4.5rem"
         strength={3}
-        divCount={8}
+        divCount={gradualBlurDivCount}
         curve="bezier"
         exponential={true}
         zIndex={35}
@@ -955,13 +1086,15 @@ export default function TubeLightLogo() {
 
       {/* Spacer reserves scroll distance for the whole drone -> Achievements -> Sponsors
           sequence: 130vh of drone playback/hold, then the 280vh Achievements pin budget
-          (ACH_START_VH + ACH_BUDGET_VH above) during which Achievements is fixed on
-          screen and Sponsors sits waiting in normal flow right after this spacer ends. */}
-      <div style={{ height: "410vh" }} aria-hidden="true" />
+          (ACH_START_VH + ACH_BUDGET_VH above), then the 200vh Sponsors pin budget
+          (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 350vh so it overlaps
+          Achievements' own fade-out) during which Sponsors is fixed on screen, ending at
+          550vh where the Apply CTA + Footer sit waiting in normal flow. */}
+      <div style={{ height: "550vh" }} aria-hidden="true" />
 
       {/* ACHIEVEMENTS SHOWCASE — pinned full-screen like the drone canvas, its opacity
           driven by achievementsOpacity so it cross-dissolves with the drone on the way
-          in and with Sponsors (arriving in normal flow right underneath) on the way out. */}
+          in and with the pinned Sponsors layer (below) on the way out. */}
       <div
         className="fixed inset-0 z-30"
         style={{
@@ -972,17 +1105,26 @@ export default function TubeLightLogo() {
         <AchievementsShowcase />
       </div>
 
-      {/* ── FINAL SCREEN — Sponsors + Apply CTA + Footer. Sponsors now leads
-          (its own min-h takes a full chunk of the screen), the Apply CTA
-          follows, and the footer sits right under that pair. */}
+      {/* SPONSORS — pinned full-screen the same way, crossfading in against
+          Achievements' fade-out and back out into the Apply CTA (arriving in
+          normal flow right underneath) once its own hold ends. */}
+      <div
+        className="fixed inset-0 z-32 flex items-center justify-center"
+        style={{
+          opacity: sponsorsOpacity,
+          pointerEvents: sponsorsOpacity > 0.05 ? "auto" : "none",
+        }}
+      >
+        <SponsorsSection />
+      </div>
+
+      {/* ── FINAL SCREEN — Apply CTA + Footer, arriving in normal flow right as
+          the pinned Sponsors layer above finishes crossfading out. */}
       <div
         className="relative z-10 w-full min-h-screen flex flex-col pt-24"
         style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
       >
         <div className="flex-1 flex flex-col justify-center">
-          {/* Sponsors */}
-          <SponsorsSection />
-
           {/* Apply CTA */}
           <section className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-6 flex flex-col items-center justify-center text-center gap-3 overflow-hidden">
             <div

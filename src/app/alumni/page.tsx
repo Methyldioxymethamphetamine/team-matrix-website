@@ -1,6 +1,7 @@
 "use client";
 
 import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
 import DotField from "@/components/DotField";
 
 export default function AlumniPage() {
@@ -23,6 +24,7 @@ export default function AlumniPage() {
           <span className="font-mono text-xs tracking-widest text-slate-500 uppercase mt-2">Coming Soon</span>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

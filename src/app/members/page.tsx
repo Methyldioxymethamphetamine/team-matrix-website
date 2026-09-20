@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import gsap from "gsap";
 import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
 import DotField from "@/components/DotField";
 import MemberCard from "@/components/MemberCard";
 import CountUp from "@/components/CountUp";
@@ -246,6 +247,7 @@ export default function MembersPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

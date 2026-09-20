@@ -379,6 +379,14 @@ export default function Masonry({
         .masonry-card:hover .masonry-expand-hint {
           opacity: 1;
         }
+        /* Touch devices have no hover to reveal this on — show it faintly
+           all the time instead, so there's still a visual cue the card is
+           tappable before the user has to discover that by tapping it. */
+        @media (hover: none) {
+          .masonry-expand-hint {
+            opacity: 0.55;
+          }
+        }
         .masonry-lightbox-content {
           flex-direction: row;
         }

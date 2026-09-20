@@ -38,6 +38,41 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true, img: urlPath });
 }
 
+export async function PATCH(request: NextRequest) {
+  const unauthorized = requireAuth(request);
+  if (unauthorized) return unauthorized;
+
+  const form = await request.formData();
+  const img = String(form.get("img") ?? "");
+  const file = form.get("image");
+  const title = String(form.get("title") ?? "").trim();
+  const story = String(form.get("story") ?? "").trim();
+
+  if (!img || !img.startsWith("/stories/")) {
+    return NextResponse.json({ ok: false, error: "Missing or invalid img" }, { status: 400 });
+  }
+
+  const captions = readJsonFile<Record<string, CaptionEntry>>(CAPTIONS_PATH, {});
+  let filename = path.basename(img);
+
+  if (file instanceof File && file.size > 0) {
+    let newUrlPath: string;
+    try {
+      newUrlPath = await saveUploadedImage(file, "stories");
+    } catch (err) {
+      return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
+    }
+    deletePublicFile(img);
+    delete captions[filename];
+    filename = path.basename(newUrlPath);
+  }
+
+  captions[filename] = { title: title || undefined, story: story || undefined };
+  writeJsonFile(CAPTIONS_PATH, captions);
+
+  return NextResponse.json({ ok: true, img: `/stories/${filename}` });
+}
+
 export async function DELETE(request: NextRequest) {
   const unauthorized = requireAuth(request);
   if (unauthorized) return unauthorized;

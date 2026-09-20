@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
 import DotField from "@/components/DotField";
 import Masonry from "@/components/Masonry";
 import type { WorkItem } from "@/data/works";
@@ -155,6 +156,7 @@ export default function GalleryPage() {
           />
         )}
       </main>
+      <Footer />
     </div>
   );
 }

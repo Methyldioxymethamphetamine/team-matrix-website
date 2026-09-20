@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import GradualBlur from "./GradualBlur";
+
+// Runs before paint on the client (no SSR flash of the wrong value), falls
+// back to a plain effect on the server where layout effects are a no-op —
+// same pattern TubeLightLogo.tsx and AchievementsShowcase.tsx already use.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const NAV_LEFT = [
   { label: "About", href: "/#about" },
   { label: "Members", href: "/members" },
-  { label: "Gallery", href: "/gallery" },
+  { label: "Stories", href: "/gallery" },
 ];
 
 const NAV_RIGHT = [
@@ -18,9 +24,28 @@ const NAV_RIGHT = [
 
 const ALL_LINKS = [...NAV_LEFT, ...NAV_RIGHT];
 
+// Each GradualBlur div is its own full-viewport-width backdrop-filter layer —
+// real GPU compositing cost, worse on mobile GPUs. Halving the layer count
+// below 768px keeps the fade visually similar while cutting that cost
+// roughly in half on phones (same fix as TubeLightLogo.tsx's homepage blur).
+function useGradualBlurDivCount(breakpointPx = 768) {
+  const [divCount, setDivCount] = useState(8);
+
+  useIsomorphicLayoutEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpointPx - 1}px)`);
+    setDivCount(mql.matches ? 4 : 8);
+    const update = (e: MediaQueryListEvent) => setDivCount(e.matches ? 4 : 8);
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, [breakpointPx]);
+
+  return divCount;
+}
+
 export default function NavBar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const gradualBlurDivCount = useGradualBlurDivCount();
 
   // Close the mobile menu on route change — adjusted during render (React's
   // recommended way to reset state on a prop change) rather than in an
@@ -70,10 +95,6 @@ export default function NavBar() {
 
         {/* CENTER LOGO */}
         <div className="pointer-events-auto relative flex flex-col items-center" style={{ flex: "0 0 auto" }}>
-          {/* Breathing circuit ring */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <CircuitRing />
-          </div>
           <Link href="/" className="relative z-10 w-12 sm:w-14 md:w-16 block transition-transform duration-300 hover:scale-110">
             <Image
               src="/tempfiles/matrixlogo (2).png"
@@ -165,68 +186,30 @@ export default function NavBar() {
           </Link>
         </nav>
       </div>
+
+      {/* TOP GRADUAL BACKDROP BLUR OVERLAY — matches the homepage's treatment */}
+      <GradualBlur
+        target="page"
+        position="top"
+        height="5.5rem"
+        strength={3}
+        divCount={gradualBlurDivCount}
+        curve="bezier"
+        exponential={true}
+        zIndex={35}
+      />
+
+      {/* BOTTOM GRADUAL BACKDROP BLUR OVERLAY */}
+      <GradualBlur
+        target="page"
+        position="bottom"
+        height="4.5rem"
+        strength={3}
+        divCount={gradualBlurDivCount}
+        curve="bezier"
+        exponential={true}
+        zIndex={35}
+      />
     </>
-  );
-}
-
-/* Breathing SVG circuit ring */
-function CircuitRing() {
-  return (
-    <svg
-      width="72"
-      height="72"
-      viewBox="0 0 72 72"
-      fill="none"
-      className="circuit-ring"
-      style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
-    >
-      <style>{`
-        @keyframes breathe {
-          0%, 100% { opacity: 0.18; transform: translate(-50%,-50%) scale(1); }
-          50%       { opacity: 0.45; transform: translate(-50%,-50%) scale(1.08); }
-        }
-        .circuit-ring {
-          animation: breathe 3.2s ease-in-out infinite;
-          transform-origin: center;
-          pointer-events: none;
-        }
-      `}</style>
-
-      {/* Outer ring */}
-      <circle cx="36" cy="36" r="33" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="4 3" />
-      {/* Inner ring */}
-      <circle cx="36" cy="36" r="26" stroke="#ef4444" strokeWidth="0.5" strokeDasharray="2 4" />
-
-      {/* Cardinal tick marks */}
-      {[0, 90, 180, 270].map((angle) => {
-        const rad = (angle * Math.PI) / 180;
-        const x1 = 36 + 27 * Math.cos(rad);
-        const y1 = 36 + 27 * Math.sin(rad);
-        const x2 = 36 + 33 * Math.cos(rad);
-        const y2 = 36 + 33 * Math.sin(rad);
-        return <line key={angle} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />;
-      })}
-
-      {/* Diagonal mini ticks */}
-      {[45, 135, 225, 315].map((angle) => {
-        const rad = (angle * Math.PI) / 180;
-        const x1 = 36 + 29 * Math.cos(rad);
-        const y1 = 36 + 29 * Math.sin(rad);
-        const x2 = 36 + 33 * Math.cos(rad);
-        const y2 = 36 + 33 * Math.sin(rad);
-        return <line key={angle} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#ef4444" strokeWidth="0.8" strokeLinecap="round" />;
-      })}
-
-      {/* Circuit trace arcs — quadrant connectors */}
-      <path d="M 36 3 L 36 10 M 36 62 L 36 69 M 3 36 L 10 36 M 62 36 L 69 36" stroke="#ef4444" strokeWidth="0.7" />
-      <path d="M 15 15 L 20 20 M 57 15 L 52 20 M 15 57 L 20 52 M 57 57 L 52 52" stroke="#ef4444" strokeWidth="0.5" />
-
-      {/* Small corner squares */}
-      {[
-        [18, 18], [52, 18], [18, 52], [52, 52]
-      ].map(([cx, cy], i) => (
-        <rect key={i} x={cx - 2} y={cy - 2} width="4" height="4" rx="0.5" stroke="#ef4444" strokeWidth="0.6" fill="none" />
-      ))}
-    </svg>
   );
 }

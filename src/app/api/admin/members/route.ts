@@ -55,6 +55,61 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: true, member: entry });
 }
 
+export async function PATCH(request: NextRequest) {
+  const unauthorized = requireAuth(request);
+  if (unauthorized) return unauthorized;
+
+  const form = await request.formData();
+  const id = String(form.get("id") ?? "");
+  const file = form.get("avatar");
+  const name = String(form.get("name") ?? "").trim();
+  const title = String(form.get("title") ?? "").trim();
+  const handle = String(form.get("handle") ?? "").trim();
+  const status = String(form.get("status") ?? "").trim();
+  const departmentRaw = String(form.get("department") ?? "");
+  const lead = String(form.get("lead") ?? "") === "true";
+
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
+  }
+
+  const members = readJsonFile<Member[]>(DATA_PATH, []);
+  const target = members.find((m) => m.id === id);
+  if (!target) {
+    return NextResponse.json({ ok: false, error: "Member not found" }, { status: 404 });
+  }
+
+  if (name) target.name = name;
+  if (title) target.title = title;
+  if (handle) target.handle = handle;
+  if (status) target.status = status;
+  if (departmentRaw) {
+    if (!DEPARTMENTS.includes(departmentRaw as Department)) {
+      return NextResponse.json({ ok: false, error: "Invalid department" }, { status: 400 });
+    }
+    target.department = departmentRaw as Department;
+  }
+  if (lead) {
+    target.lead = true;
+  } else {
+    delete target.lead;
+  }
+
+  if (file instanceof File && file.size > 0) {
+    let newAvatarUrl: string;
+    try {
+      newAvatarUrl = await saveUploadedImage(file, "members");
+    } catch (err) {
+      return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 400 });
+    }
+    deletePublicFile(target.avatarUrl);
+    target.avatarUrl = newAvatarUrl;
+  }
+
+  writeJsonFile(DATA_PATH, members);
+  return NextResponse.json({ ok: true, member: target });
+}
+
 export async function DELETE(request: NextRequest) {
   const unauthorized = requireAuth(request);
   if (unauthorized) return unauthorized;

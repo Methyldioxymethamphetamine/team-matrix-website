@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { memo } from "react";
 
 // Rendered as a static, prop-less child of TubeLightLogo, which re-renders
@@ -18,7 +19,7 @@ function Footer() {
         }}
       />
 
-      <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 pt-6 sm:pt-8 pb-5">
+      <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 pt-6 sm:pt-8 pb-20 sm:pb-24">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 lg:gap-8 items-start">
 
           {/* LEFT COLUMN: Logo & Address */}
@@ -58,12 +59,12 @@ function Footer() {
               >
                 HOME
               </a>
-              <a
-                href="#members"
+              <Link
+                href="/members"
                 className="text-slate-300 hover:text-red-400 transition-colors duration-200"
               >
                 MEMBERS
-              </a>
+              </Link>
               <a
                 href="#about"
                 className="text-slate-300 hover:text-red-400 transition-colors duration-200"
@@ -76,12 +77,12 @@ function Footer() {
               >
                 SPONSORS
               </a>
-              <a
-                href="#stories"
+              <Link
+                href="/gallery"
                 className="text-slate-300 hover:text-red-400 transition-colors duration-200"
               >
                 STORIES
-              </a>
+              </Link>
             </div>
           </div>
 

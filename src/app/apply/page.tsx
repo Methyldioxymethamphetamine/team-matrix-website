@@ -1,6 +1,7 @@
 "use client";
 
 import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
 import DotField from "@/components/DotField";
 
 export default function ApplyPage() {
@@ -65,6 +66,7 @@ export default function ApplyPage() {
           </p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
