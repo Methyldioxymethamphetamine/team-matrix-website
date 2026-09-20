@@ -83,6 +83,27 @@ export default function TubeLightLogo() {
   const [mounted, setMounted] = useState(false);
   useIsomorphicLayoutEffect(() => setMounted(true), []);
 
+  // The elaborate fixed-position scroll-crossfade pin (drone -> Achievements
+  // -> Sponsors) is desktop-only. On mobile it depended on precise vh-based
+  // pin math inside a `fixed inset-0` box, which squeezed Achievements'
+  // heading/carousel/caption together (making the caption overlap the
+  // image), left it looking off-center, and could leave Sponsors' opacity
+  // never actually reaching a visible value depending on exactly how much
+  // the browser chrome ate into the real viewport height. Below this
+  // breakpoint, Achievements and Sponsors render as ordinary normal-flow
+  // sections instead — always visible, sized to their own content, with
+  // `scroll-snap-align: center` (global `scroll-snap-type: y proximity` is
+  // already set in globals.css) so scrolling still glides each one to
+  // center instead of leaving it randomly cropped by the viewport edge.
+  const [isDesktopPin, setIsDesktopPin] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    setIsDesktopPin(mql.matches);
+    const update = (e: MediaQueryListEvent) => setIsDesktopPin(e.matches);
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+
   // Reached via the standalone NavBar's "About" link (`/#about`, used on every
   // other route) — skip the tubelight flicker replay and land scrolled to the
   // very top instead of jumping to the #about anchor mid-page, since the
@@ -1084,39 +1105,60 @@ export default function TubeLightLogo() {
       </div>
 
 
-      {/* Spacer reserves scroll distance for the whole drone -> Achievements -> Sponsors
-          sequence: 130vh of drone playback/hold, then the 280vh Achievements pin budget
-          (ACH_START_VH + ACH_BUDGET_VH above), then the 200vh Sponsors pin budget
-          (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 350vh so it overlaps
-          Achievements' own fade-out) during which Sponsors is fixed on screen, ending at
-          550vh where the Apply CTA + Footer sit waiting in normal flow. */}
-      <div style={{ height: "550vh" }} aria-hidden="true" />
+      {isDesktopPin ? (
+        <>
+          {/* Spacer reserves scroll distance for the whole drone -> Achievements -> Sponsors
+              sequence: 130vh of drone playback/hold, then the 280vh Achievements pin budget
+              (ACH_START_VH + ACH_BUDGET_VH above), then the 200vh Sponsors pin budget
+              (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 350vh so it overlaps
+              Achievements' own fade-out) during which Sponsors is fixed on screen, ending at
+              550vh where the Apply CTA + Footer sit waiting in normal flow. Desktop only —
+              see `isDesktopPin` above for why mobile skips this whole pin/crossfade. */}
+          <div style={{ height: "550vh" }} aria-hidden="true" />
 
-      {/* ACHIEVEMENTS SHOWCASE — pinned full-screen like the drone canvas, its opacity
-          driven by achievementsOpacity so it cross-dissolves with the drone on the way
-          in and with the pinned Sponsors layer (below) on the way out. */}
-      <div
-        className="fixed inset-0 z-30"
-        style={{
-          opacity: achievementsOpacity,
-          pointerEvents: achievementsOpacity > 0.05 ? "auto" : "none",
-        }}
-      >
-        <AchievementsShowcase />
-      </div>
+          {/* ACHIEVEMENTS SHOWCASE — pinned full-screen like the drone canvas, its opacity
+              driven by achievementsOpacity so it cross-dissolves with the drone on the way
+              in and with the pinned Sponsors layer (below) on the way out. */}
+          <div
+            className="fixed inset-0 z-30"
+            style={{
+              opacity: achievementsOpacity,
+              pointerEvents: achievementsOpacity > 0.05 ? "auto" : "none",
+            }}
+          >
+            <AchievementsShowcase />
+          </div>
 
-      {/* SPONSORS — pinned full-screen the same way, crossfading in against
-          Achievements' fade-out and back out into the Apply CTA (arriving in
-          normal flow right underneath) once its own hold ends. */}
-      <div
-        className="fixed inset-0 z-32 flex items-center justify-center"
-        style={{
-          opacity: sponsorsOpacity,
-          pointerEvents: sponsorsOpacity > 0.05 ? "auto" : "none",
-        }}
-      >
-        <SponsorsSection />
-      </div>
+          {/* SPONSORS — pinned full-screen the same way, crossfading in against
+              Achievements' fade-out and back out into the Apply CTA (arriving in
+              normal flow right underneath) once its own hold ends. */}
+          <div
+            className="fixed inset-0 z-32 flex items-center justify-center"
+            style={{
+              opacity: sponsorsOpacity,
+              pointerEvents: sponsorsOpacity > 0.05 ? "auto" : "none",
+            }}
+          >
+            <SponsorsSection />
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Mobile: a much smaller spacer just covers the drone's own 200vh
+              pin budget (see DRONE_VH above) — no reserved space is needed
+              for Achievements/Sponsors since they're normal-flow below, not
+              pinned. */}
+          <div style={{ height: "200vh" }} aria-hidden="true" />
+
+          <div className="relative z-10 w-full" style={{ scrollSnapAlign: "center" }}>
+            <AchievementsShowcase variant="flow" />
+          </div>
+
+          <div className="relative z-10 w-full flex items-center" style={{ scrollSnapAlign: "center" }}>
+            <SponsorsSection />
+          </div>
+        </>
+      )}
 
       {/* ── FINAL SCREEN — Apply CTA + Footer, arriving in normal flow right as
           the pinned Sponsors layer above finishes crossfading out. */}

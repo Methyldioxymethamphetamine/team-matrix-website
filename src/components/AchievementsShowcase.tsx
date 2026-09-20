@@ -39,16 +39,29 @@ function useIsDesktop(breakpointPx = 640) {
   return isDesktop;
 }
 
-// Rendered inside a `fixed inset-0` wrapper in TubeLightLogo whose opacity is
-// scroll-driven (the achievements pin/crossfade) — this component itself has
-// no props, so memo still skips reconciling this subtree on every one of
-// TubeLightLogo's scroll-frame re-renders; only the wrapper's inline opacity
-// style changes each frame while the pin is active.
-function AchievementsShowcase() {
+interface AchievementsShowcaseProps {
+  /** "pinned" (default): fills a `fixed inset-0` ancestor whose own height is
+   * the viewport, so `h-full` is correct — used on desktop's scroll-crossfade
+   * pin. "flow": renders as an ordinary `min-h-screen` block in normal
+   * document flow instead — used on mobile, where the pin/crossfade is
+   * skipped in favor of normal scrolling (see TubeLightLogo.tsx), and where
+   * `h-full` had nothing definite to size against, squeezing the heading,
+   * carousel and caption together and making the caption overlap the image. */
+  variant?: "pinned" | "flow";
+}
+
+// On desktop, rendered inside a `fixed inset-0` wrapper in TubeLightLogo
+// whose opacity is scroll-driven (the achievements pin/crossfade) — this
+// component takes only the `variant` prop, so memo still skips reconciling
+// this subtree on every one of TubeLightLogo's scroll-frame re-renders as
+// long as variant hasn't changed; only the wrapper's inline opacity style
+// changes each frame while the pin is active.
+function AchievementsShowcase({ variant = "pinned" }: AchievementsShowcaseProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const active = captions[activeIndex];
   const isDesktop = useIsDesktop();
   const carouselProps = isDesktop ? DESKTOP_CAROUSEL_PROPS : MOBILE_CAROUSEL_PROPS;
+  const isFlow = variant === "flow";
 
   const items: DepthCarouselItem[] = useMemo(
     () => captions.map((c) => ({ image: `/achievements/${c.file}`, alt: c.caption })),
@@ -57,7 +70,9 @@ function AchievementsShowcase() {
 
   return (
     <section
-      className="relative z-auto w-full h-full flex flex-col items-center justify-center pt-20 sm:pt-24 pb-6 sm:pb-8 overflow-x-hidden"
+      className={`relative z-auto w-full flex flex-col items-center justify-center overflow-x-hidden ${
+        isFlow ? "min-h-screen py-16" : "h-full pt-20 sm:pt-24 pb-6 sm:pb-8"
+      }`}
     >
       <Reveal>
         <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center drop-shadow-[0_0_20px_rgba(239,68,68,0.25)] mb-2 sm:mb-3 px-4">
@@ -73,7 +88,7 @@ function AchievementsShowcase() {
           "mobile" widths (up to the 640px breakpoint) DepthCarousel's auto-scale can reach
           1x, i.e. the full 220px card — with no headroom the image touched this box's
           edges and got clipped by overflow-hidden. */}
-      <div className={`w-full overflow-hidden ${isDesktop ? "h-[400px] md:h-[420px]" : "h-[260px]"}`}>
+      <div className={`w-full overflow-hidden ${isDesktop ? "h-[400px] md:h-[420px]" : isFlow ? "h-[280px]" : "h-[260px]"}`}>
         <DepthCarousel
           items={items}
           tilt={0}
@@ -90,7 +105,7 @@ function AchievementsShowcase() {
           `w-full` is required here: this is a flex child of the `items-center` section
           above, which shrinks children to fit their content by default, so max-w alone
           would only matter for captions already longer than the old 2xl cap. */}
-      <div className="mt-6 sm:mt-4 w-full max-w-2xl sm:max-w-[84rem] mx-auto text-center px-4">
+      <div className={`w-full max-w-2xl sm:max-w-[84rem] mx-auto text-center px-4 ${isFlow ? "mt-10 pt-2" : "mt-6 sm:mt-4"}`}>
         {/* key={activeIndex} remounts the <p> on every slide change, restarting
             the fadeInUp animation — a plain transition class here does nothing
             since the text swaps instantly with no property actually changing. */}
