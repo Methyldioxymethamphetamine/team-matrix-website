@@ -209,7 +209,26 @@ export default function TubeLightLogo() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Canvas pixel size only needs to change when the viewport itself resizes,
+    // not on every animation frame. Measuring it inside the scroll-driven
+    // render loop (as this used to) forces a synchronous full-page layout
+    // reflow 60x/second for the entire remaining lifetime of the page —
+    // increasingly janky ("glitchy") the more DOM sits below the fold
+    // (Achievements/Sponsors/Footer), since every reflow has to lay all of
+    // it out even though the canvas is long past being relevant there.
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+    };
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
     let rafId: number;
+    let canvasCleared = true;
 
     const render = () => {
       const scrollY = window.scrollY;
@@ -231,7 +250,6 @@ export default function TubeLightLogo() {
       // Visible once drone animation wraps up (P >= 0.95)
       setWorksRawVisible(P >= 0.95);
 
-      let activeSet: HTMLImageElement[] = seq1Images;
       let localProgress = 0;
       let opacity = 0;
 
@@ -273,80 +291,85 @@ export default function TubeLightLogo() {
       // its top ever reaches P=0.75, which would otherwise show the drone
       // still fully opaque behind/around it. Force the canvas to fade out
       // as soon as any part of Achievements becomes visible, finishing by
-      // the time it fully reaches the top — this fires independently of
-      // (and can only shorten) the stage-based fade above.
-      const achievementsEl = document.getElementById("achievements-section");
-      if (achievementsEl) {
-        const achTop = achievementsEl.getBoundingClientRect().top;
-        const entryFade = Math.min(1, Math.max(0, achTop / window.innerHeight));
-        opacity = Math.min(opacity, entryFade);
+      // the time it fully reaches the top. Only bother measuring this while
+      // the stage-based opacity above is still positive — once that's 0,
+      // min(0, anything) is always 0, so the DOM read (a forced layout
+      // reflow) would be pure waste for the rest of the page's scroll range.
+      if (opacity > 0) {
+        const achievementsEl = document.getElementById("achievements-section");
+        if (achievementsEl) {
+          const achTop = achievementsEl.getBoundingClientRect().top;
+          const entryFade = Math.min(1, Math.max(0, achTop / window.innerHeight));
+          opacity = Math.min(opacity, entryFade);
+        }
       }
 
-      const parent = canvas.parentElement;
-      if (parent && activeSet.length > 0) {
-        const rect = parent.getBoundingClientRect();
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const targetW = Math.floor(rect.width * dpr);
-        const targetH = Math.floor(rect.height * dpr);
-
-        if (canvas.width !== targetW || canvas.height !== targetH) {
-          canvas.width = targetW;
-          canvas.height = targetH;
+      // Once fully faded there is nothing left to draw — clear the canvas
+      // once and then leave it alone instead of re-clearing and re-measuring
+      // every frame for the rest of the page's scroll range.
+      if (opacity <= 0.01) {
+        if (!canvasCleared) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvasCleared = true;
         }
+        rafId = requestAnimationFrame(render);
+        return;
+      }
+      canvasCleared = false;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const frameIdx = Math.min(
-          activeSet.length - 1,
-          Math.floor(localProgress * (activeSet.length - 1))
-        );
-        const img = activeSet[frameIdx];
+      const frameIdx = Math.min(
+        seq1Images.length - 1,
+        Math.floor(localProgress * (seq1Images.length - 1))
+      );
+      const img = seq1Images[frameIdx];
 
-        if (img && img.complete && img.naturalWidth > 0 && opacity > 0.01) {
-          ctx.globalAlpha = opacity;
+      if (img && img.complete && img.naturalWidth > 0) {
+        ctx.globalAlpha = opacity;
 
-          // The drone frames are 16:9 (landscape). On a landscape/desktop
-          // canvas, COVER (fill the screen, cropping overflow) looks right.
-          // On a portrait mobile canvas, COVER would crop most of the frame
-          // away sideways to fill the tall viewport — instead CONTAIN so the
-          // whole drone fits on screen, centered, with the page's own
-          // background showing through the letterboxed top/bottom.
-          const isPortrait = canvas.width < canvas.height;
-          const ratio = isPortrait
-            ? Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight)
-            : Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+        // The drone frames are 16:9 (landscape). On a landscape/desktop
+        // canvas, COVER (fill the screen, cropping overflow) looks right.
+        // On a portrait mobile canvas, COVER would crop most of the frame
+        // away sideways to fill the tall viewport — instead CONTAIN so the
+        // whole drone fits on screen, centered, with the page's own
+        // background showing through the letterboxed top/bottom.
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const isPortrait = canvas.width < canvas.height;
+        const ratio = isPortrait
+          ? Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight)
+          : Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
 
-          const drawW = img.naturalWidth * ratio;
-          const drawH = img.naturalHeight * ratio;
-          const offsetX = (canvas.width - drawW) / 2;
-          const offsetY = (canvas.height - drawH) / 2;
+        const drawW = img.naturalWidth * ratio;
+        const drawH = img.naturalHeight * ratio;
+        const offsetX = (canvas.width - drawW) / 2;
+        const offsetY = (canvas.height - drawH) / 2;
 
-          ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+        ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
-          // On mobile (contain mode), the frame's top/bottom edges land in the
-          // middle of the screen as a hard rectangular cutoff. Feather them
-          // into transparency so the drone fades into the background instead
-          // of showing an obvious box edge.
-          if (isPortrait) {
-            const fadeHeight = Math.min(90 * dpr, drawH * 0.3);
-            ctx.save();
-            ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = "destination-out";
+        // On mobile (contain mode), the frame's top/bottom edges land in the
+        // middle of the screen as a hard rectangular cutoff. Feather them
+        // into transparency so the drone fades into the background instead
+        // of showing an obvious box edge.
+        if (isPortrait) {
+          const fadeHeight = Math.min(90 * dpr, drawH * 0.3);
+          ctx.save();
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "destination-out";
 
-            const topFade = ctx.createLinearGradient(0, offsetY, 0, offsetY + fadeHeight);
-            topFade.addColorStop(0, "rgba(0,0,0,1)");
-            topFade.addColorStop(1, "rgba(0,0,0,0)");
-            ctx.fillStyle = topFade;
-            ctx.fillRect(offsetX, offsetY, drawW, fadeHeight);
+          const topFade = ctx.createLinearGradient(0, offsetY, 0, offsetY + fadeHeight);
+          topFade.addColorStop(0, "rgba(0,0,0,1)");
+          topFade.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = topFade;
+          ctx.fillRect(offsetX, offsetY, drawW, fadeHeight);
 
-            const bottomFade = ctx.createLinearGradient(0, offsetY + drawH - fadeHeight, 0, offsetY + drawH);
-            bottomFade.addColorStop(0, "rgba(0,0,0,0)");
-            bottomFade.addColorStop(1, "rgba(0,0,0,1)");
-            ctx.fillStyle = bottomFade;
-            ctx.fillRect(offsetX, offsetY + drawH - fadeHeight, drawW, fadeHeight);
+          const bottomFade = ctx.createLinearGradient(0, offsetY + drawH - fadeHeight, 0, offsetY + drawH);
+          bottomFade.addColorStop(0, "rgba(0,0,0,0)");
+          bottomFade.addColorStop(1, "rgba(0,0,0,1)");
+          ctx.fillStyle = bottomFade;
+          ctx.fillRect(offsetX, offsetY + drawH - fadeHeight, drawW, fadeHeight);
 
-            ctx.restore();
-          }
+          ctx.restore();
         }
       }
 
@@ -357,6 +380,7 @@ export default function TubeLightLogo() {
 
     return () => {
       cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", resizeCanvas);
     };
   }, [seq1Images]);
 
