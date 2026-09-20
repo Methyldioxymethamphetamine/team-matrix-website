@@ -226,6 +226,21 @@ export default function DepthCarousel({
       const cfg = cfgRef.current;
       const n = cfg.count;
       if (!n) return;
+      // `tweenTo` kills the previous tween before starting a new one, which
+      // skips its `onComplete` — the only place `posRef.current` normally
+      // gets wrapped back into [0, n). Fast repeated navigation (rapid wheel
+      // scrolling, or autoplay firing mid-navigation) interrupts tweens
+      // before they complete far more often than it lets them finish, so
+      // without this, `posRef.current` drifts further from [0, n) with every
+      // interruption and never gets reset — compounding floating-point error
+      // into every card's `d`/transform/z-index calc in `layout()` until
+      // positions visibly glitch after "enough" scrolling. Normalizing here,
+      // before computing `delta` off whatever `posRef.current` currently is,
+      // means every navigation starts from a small, precise value regardless
+      // of how many prior tweens got interrupted.
+      if (cfg.loop && n > 1) {
+        posRef.current = ((posRef.current % n) + n) % n;
+      }
       const idx = cfg.loop ? ((rawIndex % n) + n) % n : clamp(rawIndex, 0, n - 1);
       let delta = idx - posRef.current;
       if (cfg.loop && n > 1) {
@@ -291,6 +306,12 @@ export default function DepthCarousel({
     const cfg = cfgRef.current;
     if (cfg.count < 2) return;
     tweenRef.current?.kill();
+    // Same normalization as setFocus (see the comment there) — a drag
+    // starting right after an interrupted tween should still baseline off a
+    // small, precise position, not whatever it drifted to.
+    if (cfg.loop) {
+      posRef.current = ((posRef.current % cfg.count) + cfg.count) % cfg.count;
+    }
     dragRef.current = {
       x: e.clientX,
       startPos: posRef.current,
@@ -371,7 +392,17 @@ export default function DepthCarousel({
       stop();
       autoTimerRef.current = setInterval(
         () => {
-          if (!hovered && !focused) navigateBy(1);
+          // `hovered`/`focused` only ever get set by mouse/keyboard events —
+          // a touch drag on mobile fires neither, so without this check
+          // autoplay's navigateBy(1) can fire mid-drag. That starts a GSAP
+          // tween whose onUpdate writes posRef.current on every tick at the
+          // same time the drag's own onPointerMove is ALSO writing
+          // posRef.current directly every touchmove — two independent
+          // writers fighting over the same ref, which is what visibly
+          // glitches/jitters the carousel the longer you drag through it
+          // (more time = higher chance the fixed autoplay interval lands
+          // mid-gesture).
+          if (!hovered && !focused && !dragRef.current) navigateBy(1);
         },
         Math.max(cfgRef.current.autoplayDelay, 600)
       );

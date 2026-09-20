@@ -373,9 +373,31 @@ export default function TubeLightLogo() {
 
     let rafId: number;
     let canvasCleared = true;
+    // This loop runs via requestAnimationFrame for the entire lifetime of
+    // the page (never stops), and every call below used to unconditionally
+    // run all of P/achievements/sponsors math and call ~6 setState functions
+    // — forcing a full re-render of this whole component 60x/sec forever,
+    // even while the page isn't actually scrolling at all. That's most
+    // visible (reported as "glitching") while wheel-scrolling through the
+    // Achievements carousel: DepthCarousel's own wheel handler calls
+    // preventDefault(), so window.scrollY never changes during that whole
+    // interaction, but this loop kept re-rendering the parent anyway,
+    // competing with DepthCarousel's GSAP tweens for the main thread. Skip
+    // everything below whenever neither the scroll position nor the
+    // viewport size actually changed since the last frame.
+    let lastScrollY = -1;
+    let lastInnerWidth = -1;
+    let lastInnerHeight = -1;
 
     const render = () => {
       const scrollY = window.scrollY;
+      if (scrollY === lastScrollY && window.innerWidth === lastInnerWidth && window.innerHeight === lastInnerHeight) {
+        rafId = requestAnimationFrame(render);
+        return;
+      }
+      lastScrollY = scrollY;
+      lastInnerWidth = window.innerWidth;
+      lastInnerHeight = window.innerHeight;
 
       // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
       // P is computed against a 200vh budget. The spacer below is 250vh — one
