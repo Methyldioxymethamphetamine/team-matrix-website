@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import DepthCarousel, { type DepthCarouselItem } from "./DepthCarousel";
 import captionsData from "../../public/achievements/captions.json";
 
@@ -12,9 +12,37 @@ interface AchievementCaption {
 
 const captions = captionsData as AchievementCaption[];
 
+// Runs before paint on the client (no SSR flash of the wrong size), falls
+// back to a plain effect on the server where layout effects are a no-op.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+// DepthCarousel's own ResizeObserver only ever scales *down* to a floor of
+// 0.4x — on a mobile viewport the desktop card/spread numbers below hit that
+// floor and render as a tiny, oddly-offset thumbnail with a lot of dead
+// space around it (reported on Android). Pick proportionally smaller props
+// on narrow viewports instead of relying on that floor to save it.
+const DESKTOP_CAROUSEL_PROPS = { cardWidth: 560, cardHeight: 360, radius: 48, depth: 100, spread: 260 };
+const MOBILE_CAROUSEL_PROPS = { cardWidth: 260, cardHeight: 168, radius: 24, depth: 48, spread: 120 };
+
+function useIsDesktop(breakpointPx = 640) {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useIsomorphicLayoutEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${breakpointPx}px)`);
+    setIsDesktop(mql.matches);
+    const update = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, [breakpointPx]);
+
+  return isDesktop;
+}
+
 export default function AchievementsShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const active = captions[activeIndex];
+  const isDesktop = useIsDesktop();
+  const carouselProps = isDesktop ? DESKTOP_CAROUSEL_PROPS : MOBILE_CAROUSEL_PROPS;
 
   const items: DepthCarouselItem[] = useMemo(
     () => captions.map((c) => ({ image: `/achievements/${c.file}`, alt: c.caption })),
@@ -38,18 +66,14 @@ export default function AchievementsShowcase() {
         Achievements
       </h2>
 
-      <div className="w-full h-[420px] sm:h-[480px] md:h-[520px] overflow-hidden">
+      <div className={`w-full overflow-hidden ${isDesktop ? "h-[480px] md:h-[520px]" : "h-[220px]"}`}>
         <DepthCarousel
           items={items}
           tilt={0}
           autoplay={true}
-          cardWidth={560}
-          cardHeight={360}
-          radius={48}
-          depth={100}
-          spread={260}
           showIndicators={false}
           onChange={(index) => setActiveIndex(index)}
+          {...carouselProps}
         />
       </div>
 
