@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 
 export interface LogoItem {
@@ -13,11 +13,11 @@ export interface LogoItem {
 
 export interface LogoLoopProps {
   logos: LogoItem[];
-  speed?: number; // pixels per second or relative speed duration
+  speed?: number; // pixels per second
   direction?: "left" | "right" | "up" | "down";
   logoHeight?: number;
   gap?: number;
-  hoverSpeed?: number; // 0 pauses animation, or custom speed multiplier on hover
+  hoverSpeed?: number; // 0 pauses auto-scroll on hover
   scaleOnHover?: boolean;
   fadeOut?: boolean;
   fadeOutColor?: string;
@@ -25,9 +25,16 @@ export interface LogoLoopProps {
   className?: string;
 }
 
+// Duplicated enough times that at least one extra copy stays off-screen on
+// either side while dragging, even on very wide monitors.
+const COPIES = 4;
+// Pointer movement (px) below which a press is treated as a click, not a drag —
+// keeps sponsor links clickable while still letting the strip be dragged.
+const DRAG_THRESHOLD = 6;
+
 export default function LogoLoop({
   logos,
-  speed = 100,
+  speed = 65,
   direction = "left",
   logoHeight = 48,
   gap = 48,
@@ -39,17 +46,110 @@ export default function LogoLoop({
   className = "",
 }: LogoLoopProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  // Duplicate items 4 times to guarantee smooth looping across wider screens
-  const duplicatedLogos = [...logos, ...logos, ...logos, ...logos];
+  const [isDragging, setIsDragging] = useState(false);
 
   const isHorizontal = direction === "left" || direction === "right";
+  const autoSign = direction === "left" || direction === "up" ? -1 : 1;
 
-  // Calculate animation duration based on speed and items
-  const duration = Math.max(10, (logos.length * 150) / speed);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
+  const loopSizeRef = useRef(0);
+  const draggingRef = useRef(false);
+  const dragMovedRef = useRef(false);
+  const pointerStartRef = useRef(0);
+  const dragStartOffsetRef = useRef(0);
 
-  // Handle hover speed adjustments (e.g. pause if hoverSpeed === 0 or slow down)
-  const isPaused = isHovered && hoverSpeed === 0;
+  const duplicatedLogos = Array.from({ length: COPIES }, () => logos).flat();
+
+  const applyTransform = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    track.style.transform = isHorizontal
+      ? `translateX(${offsetRef.current}px)`
+      : `translateY(${offsetRef.current}px)`;
+  }, [isHorizontal]);
+
+  // Measure one copy's footprint so we can wrap the offset seamlessly
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const measure = () => {
+      const size = isHorizontal ? track.scrollWidth : track.scrollHeight;
+      loopSizeRef.current = size / COPIES;
+    };
+    measure();
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [isHorizontal, logos]);
+
+  // rAF-driven auto-scroll; also the loop that keeps a dragged offset wrapping
+  useEffect(() => {
+    let rafId: number;
+    let lastTs = 0;
+
+    const tick = (ts: number) => {
+      if (lastTs === 0) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
+
+      const paused = isHovered && hoverSpeed === 0;
+      if (!draggingRef.current && !paused) {
+        offsetRef.current += autoSign * speed * dt;
+      }
+
+      const loopSize = loopSizeRef.current;
+      if (loopSize > 0) {
+        // Wrap so the offset always stays within one loop's width of 0,
+        // regardless of whether it got there via auto-scroll or a drag.
+        offsetRef.current = ((offsetRef.current % loopSize) + loopSize) % loopSize;
+        if (autoSign < 0 || direction === "up") {
+          offsetRef.current -= loopSize;
+        }
+      }
+
+      applyTransform();
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [speed, autoSign, isHovered, hoverSpeed, direction, applyTransform]);
+
+  const getPoint = (e: React.PointerEvent) => (isHorizontal ? e.clientX : e.clientY);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    draggingRef.current = true;
+    dragMovedRef.current = false;
+    pointerStartRef.current = getPoint(e);
+    dragStartOffsetRef.current = offsetRef.current;
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    const delta = getPoint(e) - pointerStartRef.current;
+    if (Math.abs(delta) > DRAG_THRESHOLD) dragMovedRef.current = true;
+    offsetRef.current = dragStartOffsetRef.current + delta;
+    applyTransform();
+  };
+
+  const endDrag = () => {
+    draggingRef.current = false;
+    setIsDragging(false);
+  };
+
+  // Suppress the click a sponsor link would otherwise fire right after a drag
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (dragMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragMovedRef.current = false;
+    }
+  };
 
   return (
     <div
@@ -98,13 +198,21 @@ export default function LogoLoop({
         </>
       )}
 
-      {/* Marquee Track Container */}
+      {/* Draggable Marquee Track */}
       <div
+        ref={trackRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerLeave={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
         className={`flex ${isHorizontal ? "flex-row items-center" : "flex-col items-center"} w-max h-full`}
         style={{
           gap: `${gap}px`,
-          animation: `logo-loop-move-${direction} ${duration}s linear infinite`,
-          animationPlayState: isPaused ? "paused" : "running",
+          touchAction: isHorizontal ? "pan-y" : "pan-x",
+          cursor: isDragging ? "grabbing" : "grab",
+          willChange: "transform",
         }}
       >
         {duplicatedLogos.map((item, idx) => {
@@ -130,7 +238,8 @@ export default function LogoLoop({
                       src={item.src}
                       alt={item.alt || item.title || `Sponsor logo ${idx}`}
                       fill
-                      className="object-contain transition-transform duration-300 group-hover:scale-105"
+                      draggable={false}
+                      className="object-contain transition-transform duration-300 group-hover:scale-105 pointer-events-none"
                     />
                   </div>
                 </div>
@@ -148,6 +257,7 @@ export default function LogoLoop({
                 target="_blank"
                 rel="noopener noreferrer"
                 title={item.title || item.alt}
+                draggable={false}
                 className="inline-flex items-center justify-center flex-shrink-0"
               >
                 {content}
@@ -162,41 +272,6 @@ export default function LogoLoop({
           );
         })}
       </div>
-
-      <style jsx global>{`
-        @keyframes logo-loop-move-left {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        @keyframes logo-loop-move-right {
-          0% {
-            transform: translateX(-50%);
-          }
-          100% {
-            transform: translateX(0);
-          }
-        }
-        @keyframes logo-loop-move-up {
-          0% {
-            transform: translateY(0);
-          }
-          100% {
-            transform: translateY(-50%);
-          }
-        }
-        @keyframes logo-loop-move-down {
-          0% {
-            transform: translateY(-50%);
-          }
-          100% {
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }

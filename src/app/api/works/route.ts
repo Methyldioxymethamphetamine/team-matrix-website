@@ -5,9 +5,6 @@ import type { WorkItem } from "@/data/works";
 // Supported image extensions the admin can drop in /public/stories/
 const IMAGE_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
-// Heights cycle through this list so the masonry grid looks varied
-const HEIGHT_CYCLE = [380, 280, 460, 320, 410, 260, 350, 430, 300, 390];
-
 export const dynamic = "force-dynamic"; // always re-read the directory on each request
 
 export async function GET() {
@@ -39,7 +36,6 @@ export async function GET() {
       id: String(idx + 1),
       img: `/stories/${filename}`,
       url: "#",
-      height: HEIGHT_CYCLE[idx % HEIGHT_CYCLE.length],
       title,
     };
   });

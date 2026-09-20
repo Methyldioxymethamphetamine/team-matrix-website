@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useLayoutEffect } from "react";
+import { useEffect, useRef, useLayoutEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import gsap from "gsap";
 
 export interface MasonryItem {
   id: string;
   img: string;
   url: string;
-  height: number;
+  /** width / height of the source image — drives the card's natural size */
+  aspectRatio: number;
   title?: string;
   category?: string;
+  /** Story copy shown in the expanded view — left blank until written */
+  story?: string;
 }
 
 interface MasonryProps {
@@ -27,6 +31,11 @@ interface MasonryProps {
   visibleDuration?: number;
 }
 
+// Reference column width used only to weigh column-balancing — the actual
+// rendered width is whatever CSS gives each column; only the relative
+// magnitude between items matters here.
+const REF_COLUMN_WIDTH = 340;
+
 export default function Masonry({
   items,
   ease = "power3.out",
@@ -38,10 +47,29 @@ export default function Masonry({
   blurToFocus = true,
   colorShiftOnHover = false,
   visible = true,
-  visibleDuration = 1.0,
 }: MasonryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasAnimated = useRef(false);
+  const [selected, setSelected] = useState<MasonryItem | null>(null);
+
+  const closeLightbox = useCallback(() => setSelected(null), []);
+
+  // Lock page scroll + allow Escape to close while the lightbox is open
+  useEffect(() => {
+    if (!selected) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selected, closeLightbox]);
 
   // Build initial-from values based on animateFrom
   const getFrom = () => {
@@ -127,14 +155,16 @@ export default function Masonry({
     return () => cleanups.forEach((fn) => fn());
   }, [items, scaleOnHover, hoverScale, colorShiftOnHover]);
 
-  // Distribute items into 3 columns by height for visual balance
+  // Distribute items into 3 columns, balancing by each image's own
+  // (width-normalized) rendered height so columns stay roughly even
+  // regardless of each photo's aspect ratio.
   const columns = [0, 1, 2].map(() => [] as MasonryItem[]);
   const heights = [0, 0, 0];
 
   items.forEach((item) => {
     const col = heights.indexOf(Math.min(...heights));
     columns[col].push(item);
-    heights[col] += item.height;
+    heights[col] += REF_COLUMN_WIDTH / (item.aspectRatio || 1);
   });
 
   return (
@@ -151,23 +181,30 @@ export default function Masonry({
       {columns.map((col, colIdx) => (
         <div key={colIdx} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           {col.map((item) => (
-            <div
+            <button
               key={item.id}
+              type="button"
+              onClick={() => setSelected(item)}
               className="masonry-card"
+              aria-label="Expand photo"
               style={{
                 display: "block",
+                width: "100%",
                 borderRadius: "1rem",
                 overflow: "hidden",
                 position: "relative",
                 willChange: "transform",
                 opacity: 0, // start hidden, GSAP animates to 1
-                height: `${item.height}px`,
                 border: "1px solid rgba(239,68,68,0.18)",
                 boxShadow: "0 4px 32px rgba(0,0,0,0.55)",
                 background: "#0a0a0f",
+                padding: 0,
+                cursor: "pointer",
+                textAlign: "left",
               }}
             >
-              {/* Image */}
+              {/* Image — sized purely by its own natural aspect ratio, so
+                  the full photo always shows with no cropping or bars */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.img}
@@ -175,8 +212,8 @@ export default function Masonry({
                 className="masonry-img"
                 style={{
                   width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
+                  height: "auto",
+                  aspectRatio: item.aspectRatio || undefined,
                   display: "block",
                   transformOrigin: "center",
                   willChange: "transform",
@@ -185,48 +222,25 @@ export default function Masonry({
                 }}
               />
 
-              {/* Overlay with gradient + labels */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background:
-                    "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.20) 55%, transparent 100%)",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  padding: "1.1rem 1.2rem",
-                  pointerEvents: "none",
-                }}
-              >
-                {item.category && (
-                  <span
-                    style={{
-                      fontFamily: "var(--font-geist-mono), monospace",
-                      fontSize: "0.62rem",
-                      letterSpacing: "0.22em",
-                      textTransform: "uppercase",
-                      color: "rgba(239,68,68,0.9)",
-                      marginBottom: "0.35rem",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.category}
-                  </span>
-                )}
-                {item.title && (
-                  <span
-                    style={{
-                      fontFamily: "var(--font-geist-sans), sans-serif",
-                      fontSize: "0.82rem",
-                      color: "#f8fafc",
-                      lineHeight: 1.4,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {item.title}
-                  </span>
-                )}
+              {/* Expand hint — fades in on hover */}
+              <div className="masonry-expand-hint" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "3rem",
+                    height: "3rem",
+                    borderRadius: "9999px",
+                    background: "rgba(10,10,16,0.65)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    backdropFilter: "blur(6px)",
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+                  </svg>
+                </span>
               </div>
 
               {/* Red glow on hover via CSS */}
@@ -241,10 +255,114 @@ export default function Masonry({
                   pointerEvents: "none",
                 }}
               />
-            </div>
+            </button>
           ))}
         </div>
       ))}
+
+      {/* Lightbox — expanded photo + story. Portaled to <body> so it always
+          renders above the page (escapes the z-10 stacking context <main>
+          creates, which would otherwise trap it below the z-40 NavBar). */}
+      {selected && typeof document !== "undefined" && createPortal(
+        <div
+          className="masonry-lightbox"
+          onClick={closeLightbox}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "5vh 5vw",
+            background: "rgba(4,4,7,0.88)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: "1.25rem",
+              right: "1.25rem",
+              width: "2.75rem",
+              height: "2.75rem",
+              borderRadius: "9999px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="masonry-lightbox-content"
+            style={{
+              display: "flex",
+              alignItems: "stretch",
+              gap: "1.25rem",
+              maxWidth: "min(94vw, 1100px)",
+              maxHeight: "90vh",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={selected.img}
+              alt={selected.title ?? "Story"}
+              style={{
+                display: "block",
+                width: "auto",
+                height: "auto",
+                maxWidth: "min(65vw, 700px)",
+                maxHeight: "80vh",
+                borderRadius: "1rem",
+                border: "1px solid rgba(239,68,68,0.25)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+                flex: "0 1 auto",
+              }}
+            />
+
+            <div
+              className="masonry-lightbox-story"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                flex: "0 0 300px",
+                borderRadius: "1rem",
+                padding: "1.5rem",
+                background: "rgba(13,13,20,0.75)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                overflowY: "auto",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontSize: "0.9rem",
+                  lineHeight: 1.7,
+                  color: selected.story ? "#e2e8f0" : "rgba(226,232,240,0.4)",
+                  fontStyle: selected.story ? "normal" : "italic",
+                }}
+              >
+                {selected.story || "Story coming soon."}
+              </p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <style>{`
         .masonry-card:hover .masonry-hover-glow {
@@ -253,6 +371,30 @@ export default function Masonry({
         }
         .masonry-card:hover .masonry-img {
           filter: grayscale(40%) contrast(1.08) !important;
+        }
+        .masonry-expand-hint {
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .masonry-card:hover .masonry-expand-hint {
+          opacity: 1;
+        }
+        .masonry-lightbox-content {
+          flex-direction: row;
+        }
+        @media (max-width: 760px) {
+          .masonry-lightbox-content {
+            flex-direction: column;
+            max-width: min(92vw, 560px) !important;
+          }
+          .masonry-lightbox-content img {
+            max-width: 100% !important;
+            max-height: 55vh !important;
+          }
+          .masonry-lightbox-story {
+            flex: 0 0 auto !important;
+            max-height: 30vh;
+          }
         }
         @media (max-width: 900px) {
           .masonry-grid {

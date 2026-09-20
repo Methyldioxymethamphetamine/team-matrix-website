@@ -2,6 +2,13 @@
 // Update this file to add/remove/edit members.
 // Place member photos in /public/members/ — reference them as "/members/filename.webp"
 
+export type Department =
+  | "Leadership"
+  | "Mechanical"
+  | "Electronics"
+  | "Algorithms"
+  | "Management";
+
 export interface Member {
   id: string;
   /** Full display name */
@@ -14,6 +21,10 @@ export interface Member {
   status: string;
   /** Path to avatar image in /public/members/ */
   avatarUrl: string;
+  /** Primary department, used for filtering on the /members page */
+  department: Department;
+  /** Marks heads/co-heads/captain/manager for the "Leadership" filter + badge */
+  lead?: boolean;
 }
 
 export const members: Member[] = [
@@ -25,6 +36,8 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Captain",
     avatarUrl: "/members/ajssitd2lsjpo0hjgq2k.webp",
+    department: "Leadership",
+    lead: true,
   },
   {
     id: "2",
@@ -33,6 +46,8 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Active",
     avatarUrl: "/members/buqdgpefqmsfo1ylokl5.webp",
+    department: "Algorithms",
+    lead: true,
   },
   {
     id: "3",
@@ -41,6 +56,8 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Active",
     avatarUrl: "/members/p82nscxorkudfe7qdl4f.webp",
+    department: "Management",
+    lead: true,
   },
   {
     id: "4",
@@ -49,6 +66,8 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Active",
     avatarUrl: "/members/vetiznrnvi0n3citbk8d.webp",
+    department: "Electronics",
+    lead: true,
   },
   // ── ROW 2 ─────────────────────────────────────────────────────────────────
   {
@@ -58,6 +77,8 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Active",
     avatarUrl: "/members/wagx8rync4eauw4bek9u.webp",
+    department: "Algorithms",
+    lead: true,
   },
   {
     id: "6",
@@ -66,6 +87,8 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Active",
     avatarUrl: "/members/mpcr0dczx8ispdqzra4i.webp",
+    department: "Mechanical",
+    lead: true,
   },
   {
     id: "7",
@@ -74,6 +97,7 @@ export const members: Member[] = [
     handle: "placeholder",
     status: "Active",
     avatarUrl: "/members/itkuvp9edknes9zalyzo.webp",
+    department: "Management",
   },
   {
     id: "8",
@@ -82,5 +106,7 @@ export const members: Member[] = [
     handle: "cadspec",
     status: "Active",
     avatarUrl: "/members/hfcmhjlpo17qk9c16nmy.webp",
+    department: "Mechanical",
+    lead: true,
   },
 ];

@@ -7,18 +7,12 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import StrokeText from "./StrokeText";
 import DotField from "./DotField";
-import ExplodedCallouts from "./ExplodedCallouts";
 import GradualBlur from "./GradualBlur";
 import Strands from "./Strands";
-import Masonry from "./Masonry";
-import MembersSection from "./MembersSection";
 import SponsorsSection from "./SponsorsSection";
 import Footer from "./Footer";
-import type { WorkItem } from "@/data/works";
 
 const DRONE_1_COUNT = 60;
-const DRONE_2_COUNT = 70;
-const DRONE_3_COUNT = 70;
 
 export default function TubeLightLogo() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,33 +20,17 @@ export default function TubeLightLogo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [isMovedToNav, setIsMovedToNav] = useState(false);
+  const [readyForScroll, setReadyForScroll] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Preloading & intro transition sync state
   const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [introFinished, setIntroFinished] = useState(false);
 
-  // Tracks whether Our Stories section should be visible (set inside RAF loop)
+  // Tracks whether scroll animation sections should be visible
   const [worksRawVisible, setWorksRawVisible] = useState(false);
-  // Tracks whether Members section should be visible (scrollY >= 17*vh = 1700vh)
-  const [membersRawVisible, setMembersRawVisible] = useState(false);
-
-  // Dynamically fetched from /api/works (reads /public/stories/ at runtime)
-  const [worksItems, setWorksItems] = useState<WorkItem[]>([]);
-  const [worksLoading, setWorksLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/works")
-      .then((r) => r.json())
-      .then((data: WorkItem[]) => {
-        setWorksItems(data);
-      })
-      .catch(() => {
-        setWorksItems([]); // leave empty on error — section will show header only
-      })
-      .finally(() => setWorksLoading(false));
-  }, []);
 
   // Video state & refs for About section video
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -77,10 +55,8 @@ export default function TubeLightLogo() {
     }
   };
 
-  // In-memory frame buffers for all 3 sequential drone videos
+  // In-memory frame buffer for drone 3D animation sequence
   const [seq1Images, setSeq1Images] = useState<HTMLImageElement[]>([]);
-  const [seq2Images, setSeq2Images] = useState<HTMLImageElement[]>([]);
-  const [seq3Images, setSeq3Images] = useState<HTMLImageElement[]>([]);
 
   // Reset scroll position to top on page load / refresh & disable browser scroll restoration
   useEffect(() => {
@@ -101,10 +77,10 @@ export default function TubeLightLogo() {
     }
   }, []);
 
-  // Preload transparent RGBA WebP frames for all 3 drone sequences + about-video.mp4
+  // Preload transparent RGBA WebP frames for drone sequence + about-video.mp4
   useEffect(() => {
     let loadedCount = 0;
-    const totalCount = DRONE_1_COUNT + DRONE_2_COUNT + DRONE_3_COUNT + 1; // 200 frames + 1 video
+    const totalCount = DRONE_1_COUNT + 1; // 60 frames + 1 video
 
     const incrementLoad = () => {
       loadedCount++;
@@ -127,31 +103,7 @@ export default function TubeLightLogo() {
     }
     setSeq1Images(imgs1);
 
-    // 2) Sequence 2: drone1.webm (70 frames)
-    const imgs2: HTMLImageElement[] = [];
-    for (let i = 1; i <= DRONE_2_COUNT; i++) {
-      const img = new window.Image();
-      const idx = String(i).padStart(3, "0");
-      img.onload = incrementLoad;
-      img.onerror = incrementLoad;
-      img.src = `/tempfiles/drone1_frames/frame_${idx}.webp`;
-      imgs2.push(img);
-    }
-    setSeq2Images(imgs2);
-
-    // 3) Sequence 3: drone_reversed.webm (70 frames)
-    const imgs3: HTMLImageElement[] = [];
-    for (let i = 1; i <= DRONE_3_COUNT; i++) {
-      const img = new window.Image();
-      const idx = String(i).padStart(3, "0");
-      img.onload = incrementLoad;
-      img.onerror = incrementLoad;
-      img.src = `/tempfiles/drone_reversed_frames/frame_${idx}.webp`;
-      imgs3.push(img);
-    }
-    setSeq3Images(imgs3);
-
-    // 4) Preload about-video.mp4
+    // 2) Preload about-video.mp4
     const videoObj = document.createElement("video");
     videoObj.src = "/tempfiles/about-video.mp4";
     videoObj.preload = "auto";
@@ -167,19 +119,39 @@ export default function TubeLightLogo() {
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // Synchronize logo navigation transition to only happen when BOTH intro finished and assets fully loaded + 2s intentional delay
+  // Synchronize: after intro + assets + 3s intentional delay → set readyForScroll
+  // Then the FIRST scroll/wheel event triggers isMovedToNav (task 5 + 5.1)
   useEffect(() => {
     if (introFinished && isAssetsLoaded) {
       const delayTimer = setTimeout(() => {
-        if (typeof document !== "undefined") {
-          document.body.style.overflow = "auto";
-        }
-        setIsMovedToNav(true);
-      }, 2000); // Intentional 2 second loading screen delay
+        setReadyForScroll(true);
+      }, 3000); // Intentional 3s loading screen delay
 
       return () => clearTimeout(delayTimer);
     }
   }, [introFinished, isAssetsLoaded]);
+
+  // Scroll-triggered transition: first scroll after ready → fly logo to nav
+  useEffect(() => {
+    if (!readyForScroll || isMovedToNav) return;
+
+    const triggerNav = () => {
+      if (typeof document !== "undefined") {
+        document.body.style.overflow = "auto";
+      }
+      setIsMovedToNav(true);
+    };
+
+    window.addEventListener("scroll", triggerNav, { once: true, passive: true });
+    window.addEventListener("wheel", triggerNav, { once: true, passive: true });
+    window.addEventListener("touchmove", triggerNav, { once: true, passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", triggerNav);
+      window.removeEventListener("wheel", triggerNav);
+      window.removeEventListener("touchmove", triggerNav);
+    };
+  }, [readyForScroll, isMovedToNav]);
 
   // Tubelight Intro GSAP Sequence
   useGSAP(
@@ -199,26 +171,26 @@ export default function TubeLightLogo() {
         },
       });
 
-      // Tubelight turn-on flicker sequence
+      // Tubelight turn-on flicker sequence (reduced glow intensities)
       tl.set(logoGroup, { opacity: 0, filter: "drop-shadow(0 0 0px rgba(239, 68, 68, 0))" })
         .to(logoGroup, { opacity: 0.1, duration: 0.12 })
         .to(logoGroup, { opacity: 0, duration: 0.06 })
-        .to(logoGroup, { opacity: 0.85, filter: "drop-shadow(0 0 15px rgba(239, 68, 68, 0.6))", duration: 0.05 })
-        .to(logoGroup, { opacity: 0.15, filter: "drop-shadow(0 0 3px rgba(239, 68, 68, 0.2))", duration: 0.1 })
-        .to(logoGroup, { opacity: 0.95, filter: "drop-shadow(0 0 25px rgba(239, 68, 68, 0.8))", duration: 0.04 })
-        .to(logoGroup, { opacity: 0.2, filter: "drop-shadow(0 0 5px rgba(239, 68, 68, 0.2))", duration: 0.08 })
-        .to(logoGroup, { opacity: 1, filter: "drop-shadow(0 0 30px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 55px rgba(239, 68, 68, 0.7))", duration: 0.12 })
-        .to(logoGroup, { opacity: 0.8, filter: "drop-shadow(0 0 15px rgba(239, 68, 68, 0.5))", duration: 0.06 })
+        .to(logoGroup, { opacity: 0.85, filter: "drop-shadow(0 0 8px rgba(239, 68, 68, 0.5))", duration: 0.05 })
+        .to(logoGroup, { opacity: 0.15, filter: "drop-shadow(0 0 2px rgba(239, 68, 68, 0.15))", duration: 0.1 })
+        .to(logoGroup, { opacity: 0.95, filter: "drop-shadow(0 0 12px rgba(239, 68, 68, 0.6))", duration: 0.04 })
+        .to(logoGroup, { opacity: 0.2, filter: "drop-shadow(0 0 3px rgba(239, 68, 68, 0.15))", duration: 0.08 })
+        .to(logoGroup, { opacity: 1, filter: "drop-shadow(0 0 15px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 28px rgba(239, 68, 68, 0.5))", duration: 0.12 })
+        .to(logoGroup, { opacity: 0.85, filter: "drop-shadow(0 0 8px rgba(239, 68, 68, 0.4))", duration: 0.06 })
         .to(logoGroup, {
           opacity: 1,
-          filter: "drop-shadow(0 0 25px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 50px rgba(239, 68, 68, 0.6))",
+          filter: "drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.4))",
           duration: 0.15,
         });
 
-      // Subtle ambient hum glow animation once steady
+      // Subtle ambient hum glow — much softer
       gsap.to(logoGroup, {
-        filter: "drop-shadow(0 0 35px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 70px rgba(239, 68, 68, 0.85))",
-        duration: 2.2,
+        filter: "drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 32px rgba(239, 68, 68, 0.35))",
+        duration: 2.8,
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut",
@@ -228,9 +200,9 @@ export default function TubeLightLogo() {
     { scope: containerRef }
   );
 
-  // Multi-stage sequential 3D Canvas Frame Renderer
+  // 3D Canvas Frame Renderer for Drone Sequence
   useEffect(() => {
-    if (!seq1Images.length || !seq2Images.length || !seq3Images.length) return;
+    if (!seq1Images.length) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -242,125 +214,119 @@ export default function TubeLightLogo() {
       const scrollY = window.scrollY;
 
       // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
-      // Drone animations always run across exactly 1100vh of scrolling (= 11 * innerHeight px).
-      // This means extending the page for Our Stories never stretches the drone stages.
-      const DRONE_VH = 11; // 1100vh expressed as viewport-height multiples
+      // Drone animation runs across 500vh of scrolling (= 5 * innerHeight px).
+      const DRONE_VH = 5; // 500vh expressed as viewport-height multiples
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
 
-      // ─── OUR STORIES VISIBILITY ───────────────────────────────────────────────
+      // ─── OUR STORIES VISIBILITY ────────────────────────────────────────
       // Visible once drone animation wraps up (P >= 0.95)
       setWorksRawVisible(P >= 0.95);
 
-      // Members section: always visible alongside Stories once drone ends
-      setMembersRawVisible(P >= 0.95);
+      let activeSet: HTMLImageElement[] = seq1Images;
+      let localProgress = 0;
+      let opacity = 0;
 
-      if (true) { // always run (replaces old `if (maxScroll > 0)` guard)
+      // Sequence Stage 1: drone.webm (0.00 -> 1.00)
+      // Stage 0 (0.00 -> 0.12): About Section taking over screen; drone canvas hidden (opacity = 0)
+      // Stage 0.5 (0.12 -> 0.18): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
+      // Stage 1 (0.18 -> 0.55): drone.webm scroll animation plays (0% to 100% of seq1Images)
+      // Stage 1.5 (0.55 -> 0.65): Hold drone.webm last frame static
+      // Stage 2 (0.65 -> 0.75): Fade out drone canvas smoothly — finishes well before P=0.80, the
+      //   point where the Apply CTA section (right after this 500vh spacer) starts entering the
+      //   viewport from below. Without that margin, the fixed full-screen canvas (z-20) would still
+      //   be opaque/fading on top of the CTA while it scrolls in, hiding it underneath.
+      // Stage 3 (0.75 -> 1.00): Fully hidden — nothing left to draw, canvas is inert.
+      if (P < 0.12) {
+        opacity = 0; // Completely hidden while About Team Matrix box takes over screen
+        localProgress = 0;
+      } else if (P < 0.18) {
+        opacity = (P - 0.12) / 0.06; // Smooth fade in of drone canvas as About box fades out
+        localProgress = 0;
+      } else if (P < 0.55) {
+        opacity = 1;
+        localProgress = (P - 0.18) / 0.37; // Plays 100% of drone.webm
+      } else if (P < 0.65) {
+        // Hold last frame static
+        opacity = 1;
+        localProgress = 1;
+      } else if (P < 0.75) {
+        // Fade out drone canvas smoothly
+        opacity = Math.max(0, 1 - (P - 0.65) / 0.10);
+        localProgress = 1;
+      } else {
+        opacity = 0;
+        localProgress = 1;
+      }
 
-        let activeSet: HTMLImageElement[] = [];
-        let localProgress = 0;
-        let opacity = 0;
+      const parent = canvas.parentElement;
+      if (parent && activeSet.length > 0) {
+        const rect = parent.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const targetW = Math.floor(rect.width * dpr);
+        const targetH = Math.floor(rect.height * dpr);
 
-        // Sequence Stage 1: drone.webm (0.00 -> 0.64)
-        // Stage 0 (0.00 -> 0.12): About Section taking over screen; drone canvas hidden (opacity = 0)
-        // Stage 0.5 (0.12 -> 0.18): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
-        // Stage 1 (0.18 -> 0.36): drone.webm scroll animation plays (0% to 100% of seq1Images)
-        // Stage 1.5 (0.36 -> 0.62): Hold drone.webm last frame static from 0.36 to 0.62
-        // Stage 1.8 (0.62 -> 0.64): Smooth fade out of drone.webm last frame
-        if (P < 0.64) {
-          activeSet = seq1Images;
-          if (P < 0.12) {
-            opacity = 0; // Completely hidden while About Team Matrix box takes over screen
-            localProgress = 0;
-          } else if (P < 0.18) {
-            opacity = (P - 0.12) / 0.06; // Smooth fade in of drone canvas as About box fades out
-            localProgress = 0;
-          } else if (P < 0.36) {
-            opacity = 1;
-            localProgress = (P - 0.18) / 0.18; // Plays 100% of drone.webm
-          } else if (P < 0.62) {
-            // Hold last frame static from 0.36 to 0.62
-            opacity = 1;
-            localProgress = 1;
-          } else {
-            // Fade out drone.webm
-            opacity = (0.64 - P) / 0.02;
-            localProgress = 1;
-          }
-        }
-        // Sequence Stage 2: drone1.webm (0.64 -> 0.76) - Plays explosion to 100%
-        else if (P < 0.76) {
-          activeSet = seq2Images;
-          if (P < 0.66) {
-            opacity = (P - 0.64) / 0.02; // Fade in drone1
-            localProgress = 0;
-          } else {
-            opacity = 1;
-            localProgress = (P - 0.66) / 0.10; // Plays 100% of drone1.webm to full exploded view
-          }
-        }
-        // Sequence Stage 2.5: PAUSED EXPLODED FRAME (0.76 -> 0.86) - PAUSED SCROLLS FOR CALLOUTS
-        else if (P < 0.86) {
-          activeSet = seq2Images;
-          opacity = 1;
-          localProgress = 1; // Holds the fully exploded 3D frame static
-        }
-        // Sequence Stage 3: drone_reversed.webm (0.86 -> 1.00) - Collapses assembly back down
-        else {
-          activeSet = seq3Images;
-          if (P < 0.96) {
-            opacity = 1;
-            localProgress = (P - 0.86) / 0.10; // Plays 100% of drone_reversed.webm
-          } else if (P < 0.99) {
-            // Hold LAST frame of drone_reversed.webm
-            opacity = 1;
-            localProgress = 1;
-          } else {
-            // Final Fade Out
-            opacity = (1.00 - P) / 0.01;
-            localProgress = 1;
-          }
+        if (canvas.width !== targetW || canvas.height !== targetH) {
+          canvas.width = targetW;
+          canvas.height = targetH;
         }
 
-        const parent = canvas.parentElement;
-        if (parent && activeSet.length > 0) {
-          const rect = parent.getBoundingClientRect();
-          const dpr = Math.min(window.devicePixelRatio || 1, 2);
-          const targetW = Math.floor(rect.width * dpr);
-          const targetH = Math.floor(rect.height * dpr);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          if (canvas.width !== targetW || canvas.height !== targetH) {
-            canvas.width = targetW;
-            canvas.height = targetH;
-          }
+        const frameIdx = Math.min(
+          activeSet.length - 1,
+          Math.floor(localProgress * (activeSet.length - 1))
+        );
+        const img = activeSet[frameIdx];
 
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (img && img.complete && img.naturalWidth > 0 && opacity > 0.01) {
+          ctx.globalAlpha = opacity;
 
-          const frameIdx = Math.min(
-            activeSet.length - 1,
-            Math.floor(localProgress * (activeSet.length - 1))
-          );
-          const img = activeSet[frameIdx];
+          // The drone frames are 16:9 (landscape). On a landscape/desktop
+          // canvas, COVER (fill the screen, cropping overflow) looks right.
+          // On a portrait mobile canvas, COVER would crop most of the frame
+          // away sideways to fill the tall viewport — instead CONTAIN so the
+          // whole drone fits on screen, centered, with the page's own
+          // background showing through the letterboxed top/bottom.
+          const isPortrait = canvas.width < canvas.height;
+          const ratio = isPortrait
+            ? Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight)
+            : Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
 
-          if (img && img.complete && img.naturalWidth > 0 && opacity > 0.01) {
-            ctx.globalAlpha = opacity;
+          const drawW = img.naturalWidth * ratio;
+          const drawH = img.naturalHeight * ratio;
+          const offsetX = (canvas.width - drawW) / 2;
+          const offsetY = (canvas.height - drawH) / 2;
 
-            // Full Screen COVER scaling
-            const ratio = Math.max(
-              canvas.width / img.naturalWidth,
-              canvas.height / img.naturalHeight
-            );
+          ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
-            const drawW = img.naturalWidth * ratio;
-            const drawH = img.naturalHeight * ratio;
-            const offsetX = (canvas.width - drawW) / 2;
-            const offsetY = (canvas.height - drawH) / 2;
+          // On mobile (contain mode), the frame's top/bottom edges land in the
+          // middle of the screen as a hard rectangular cutoff. Feather them
+          // into transparency so the drone fades into the background instead
+          // of showing an obvious box edge.
+          if (isPortrait) {
+            const fadeHeight = Math.min(90 * dpr, drawH * 0.3);
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.globalCompositeOperation = "destination-out";
 
-            ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+            const topFade = ctx.createLinearGradient(0, offsetY, 0, offsetY + fadeHeight);
+            topFade.addColorStop(0, "rgba(0,0,0,1)");
+            topFade.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = topFade;
+            ctx.fillRect(offsetX, offsetY, drawW, fadeHeight);
+
+            const bottomFade = ctx.createLinearGradient(0, offsetY + drawH - fadeHeight, 0, offsetY + drawH);
+            bottomFade.addColorStop(0, "rgba(0,0,0,0)");
+            bottomFade.addColorStop(1, "rgba(0,0,0,1)");
+            ctx.fillStyle = bottomFade;
+            ctx.fillRect(offsetX, offsetY + drawH - fadeHeight, drawW, fadeHeight);
+
+            ctx.restore();
           }
         }
-      } // end if (true)
+      }
 
       rafId = requestAnimationFrame(render);
     };
@@ -370,7 +336,7 @@ export default function TubeLightLogo() {
     return () => {
       cancelAnimationFrame(rafId);
     };
-  }, [seq1Images, seq2Images, seq3Images]);
+  }, [seq1Images]);
 
   const isExplodedCalloutsVisible = scrollProgress >= 0.74 && scrollProgress <= 0.88;
   const pauseProgress = Math.min(1, Math.max(0, (scrollProgress - 0.76) / 0.10));
@@ -394,10 +360,23 @@ export default function TubeLightLogo() {
     }
   }, [aboutOpacity]);
 
+  // Lock scroll + allow Escape while the mobile nav menu is open
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
   // Our Stories visible when: intro done + raw scroll past 2-viewport delay
   const worksVisible = isMovedToNav && worksRawVisible;
-  // Members visible when: intro done + scrolled to 17×vh
-  const membersVisible = isMovedToNav && membersRawVisible;
 
   return (
     <div ref={containerRef} className="relative w-full bg-black text-white select-none">
@@ -422,53 +401,113 @@ export default function TubeLightLogo() {
       {/* ── SCROLL ANCHORS ── */}
       {/* #about  → About Team Matrix section (visible 0–1.98vh, anchor at 100vh) */}
       <div id="about"  aria-hidden="true" style={{ position: "absolute", top: "100vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
-      {/* #drones → drone1.webm starts at P≈0.42 of 1100vh = ~462vh scroll */}
-      <div id="drones" aria-hidden="true" style={{ position: "absolute", top: "462vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
+      {/* #drones → drone animation starts at P≈0.20 of 500vh = ~100vh scroll */}
+      <div id="drones" aria-hidden="true" style={{ position: "absolute", top: "200vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
 
-      {/* THREE-ISLAND NAV: Left | (Logo center via logoGroupRef) | Right */}
+      {/* THREE-ISLAND NAV: Left | Center logo | Right */}
       <header
         className={`fixed top-4 left-0 right-0 z-40 flex items-center justify-between px-5 sm:px-8 pointer-events-none transition-all duration-700 ${isMovedToNav ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
       >
-        {/* LEFT ISLAND: About Stories Drones */}
-        <nav className="pointer-events-auto flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
+        {/* LEFT ISLAND: About Members Gallery — desktop only */}
+        <nav className="hidden md:flex pointer-events-auto items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
           {([
-            { label: "About",   href: "#about"   },
-            { label: "Stories", href: "#stories" },
-            { label: "Drones",  href: "#drones"  },
+            { label: "About",   href: "#about"    },
+            { label: "Members", href: "/members"  },
+            { label: "Gallery", href: "/gallery"  },
           ] as { label: string; href: string }[]).map(({ label, href }) => (
-            <a
+            <Link
               key={label}
               href={href}
               className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
             >
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
+        {/* Mobile spacer — balances the hamburger button so the logo stays centered */}
+        <div className="md:hidden w-11 h-11" aria-hidden="true" />
 
         {/* CENTER SPACER — logo is positioned by logoGroupRef */}
         <div className="flex-1" />
 
-        {/* RIGHT ISLAND: Members Contact Join */}
-        <nav className="pointer-events-auto flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
-          {["Members", "Contact"].map((label) => (
-            <a
+        {/* RIGHT ISLAND: Alumni Projects Apply — desktop only */}
+        <nav className="hidden md:flex pointer-events-auto items-center gap-0.5 px-2 py-1.5 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          {([
+            { label: "Alumni",   href: "/alumni"   },
+            { label: "Projects", href: "/projects" },
+          ] as { label: string; href: string }[]).map(({ label, href }) => (
+            <Link
               key={label}
-              href={`#${label.toLowerCase()}`}
+              href={href}
               className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
             >
               {label}
-            </a>
+            </Link>
           ))}
           <div className="w-px h-4 bg-white/10 mx-1" />
           <Link
-            href="/404"
-            className="px-4 py-1.5 rounded-full text-sm font-sans font-semibold text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_18px_rgba(239,68,68,0.3)] active:scale-95 whitespace-nowrap"
+            href="/apply"
+            className="px-4 py-1.5 rounded-full text-sm font-sans font-semibold text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_12px_rgba(239,68,68,0.25)] active:scale-95 whitespace-nowrap"
           >
-            404
+            Apply
           </Link>
         </nav>
+
+        {/* Hamburger — mobile only */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          className="md:hidden pointer-events-auto flex items-center justify-center w-11 h-11 rounded-full bg-[#0d0d14]/80 backdrop-blur-xl border border-white/[0.07] shadow-[0_8px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)] active:scale-95 transition-transform"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="text-slate-200">
+            {menuOpen ? <path d="M18 6 6 18M6 6l12 12" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+          </svg>
+        </button>
       </header>
+
+      {/* Mobile menu overlay */}
+      <div
+        className={`md:hidden fixed inset-0 z-[45] transition-opacity duration-300 ${
+          menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        <div
+          className="absolute inset-0 bg-black/80 backdrop-blur-md"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+        <nav
+          className={`absolute top-20 left-5 right-5 rounded-3xl bg-[#0d0d14]/95 border border-white/[0.08] shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-2 flex flex-col transition-all duration-300 ${
+            menuOpen ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"
+          }`}
+        >
+          {([
+            { label: "About",    href: "#about"    },
+            { label: "Members",  href: "/members"  },
+            { label: "Gallery",  href: "/gallery"  },
+            { label: "Alumni",   href: "/alumni"   },
+            { label: "Projects", href: "/projects" },
+          ] as { label: string; href: string }[]).map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              onClick={() => setMenuOpen(false)}
+              className="px-4 py-3.5 rounded-2xl text-base font-sans font-medium text-slate-300/85 transition-colors hover:text-white hover:bg-white/[0.06]"
+            >
+              {label}
+            </Link>
+          ))}
+          <Link
+            href="/apply"
+            onClick={() => setMenuOpen(false)}
+            className="mt-1 px-4 py-3.5 rounded-2xl text-base font-sans font-semibold text-center text-red-300 bg-red-950/50 border border-red-500/30 transition-colors hover:bg-red-900/50 hover:text-red-200"
+          >
+            Apply
+          </Link>
+        </nav>
+      </div>
 
       {/* LOGO & TEXT ANIMATION CONTAINER */}
       <div ref={logoGroupRef} className="fixed inset-0 z-50 pointer-events-none">
@@ -479,22 +518,109 @@ export default function TubeLightLogo() {
             : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 sm:w-72 md:w-88 lg:w-[380px]"
             }`}
         >
+          {/* Breathing circuit ring — only visible in nav state */}
+          {isMovedToNav && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ transform: "scale(3.2)" }}>
+              <svg width="72" height="72" viewBox="0 0 72 72" fill="none" className="circuit-ring-nav" aria-hidden="true">
+                <style>{`
+                  @keyframes breatheNav {
+                    0%, 100% { opacity: 0.15; transform: scale(1); }
+                    50%       { opacity: 0.40; transform: scale(1.06); }
+                  }
+                  .circuit-ring-nav {
+                    animation: breatheNav 3.4s ease-in-out infinite;
+                    transform-origin: center;
+                  }
+                `}</style>
+                <circle cx="36" cy="36" r="33" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="4 3" />
+                <circle cx="36" cy="36" r="26" stroke="#ef4444" strokeWidth="0.5" strokeDasharray="2 4" />
+                {[0, 90, 180, 270].map((angle) => {
+                  const rad = (angle * Math.PI) / 180;
+                  return (
+                    <line key={angle}
+                      x1={36 + 27 * Math.cos(rad)} y1={36 + 27 * Math.sin(rad)}
+                      x2={36 + 33 * Math.cos(rad)} y2={36 + 33 * Math.sin(rad)}
+                      stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"
+                    />
+                  );
+                })}
+                {[45, 135, 225, 315].map((angle) => {
+                  const rad = (angle * Math.PI) / 180;
+                  return (
+                    <line key={angle}
+                      x1={36 + 29 * Math.cos(rad)} y1={36 + 29 * Math.sin(rad)}
+                      x2={36 + 33 * Math.cos(rad)} y2={36 + 33 * Math.sin(rad)}
+                      stroke="#ef4444" strokeWidth="0.8" strokeLinecap="round"
+                    />
+                  );
+                })}
+                <path d="M 36 3 L 36 10 M 36 62 L 36 69 M 3 36 L 10 36 M 62 36 L 69 36" stroke="#ef4444" strokeWidth="0.7" />
+                <path d="M 15 15 L 20 20 M 57 15 L 52 20 M 15 57 L 20 52 M 57 57 L 52 52" stroke="#ef4444" strokeWidth="0.5" />
+                {[[18,18],[52,18],[18,52],[52,52]].map(([cx, cy], i) => (
+                  <rect key={i} x={cx-2} y={cy-2} width="4" height="4" rx="0.5" stroke="#ef4444" strokeWidth="0.6" fill="none" />
+                ))}
+              </svg>
+            </div>
+          )}
           <Image
             src="/tempfiles/matrixlogo (2).png"
             alt="Matrix Logo"
             width={500}
             height={500}
-            className="w-full h-auto object-contain drop-shadow-[0_0_35px_rgba(239,68,68,0.55)]"
+            className="w-full h-auto object-contain drop-shadow-[0_0_18px_rgba(239,68,68,0.35)]"
             priority
           />
         </div>
 
-        {/* INITIAL STATE: Left Stacked TEAM MATRIX Text (Fades out when transitioning to navbar) */}
+        {/* MOBILE (< sm): stacked ABOVE the logo — the desktop "beside logo" layout
+            below needs way more horizontal room than a phone has (it starts
+            clipping off the left edge well under 640px). */}
         <div
-          className={`fixed right-[calc(50%+7rem)] sm:right-[calc(50%+9.5rem)] md:right-[calc(50%+12.5rem)] lg:right-[calc(50%+14.5rem)] top-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none transition-all duration-500 ease-out ${isMovedToNav ? "opacity-0 scale-90" : "opacity-100 scale-100"
+          className={`sm:hidden fixed left-1/2 -translate-x-1/2 top-[12%] flex flex-col items-center text-center pointer-events-none transition-all duration-500 ease-out ${isMovedToNav ? "opacity-0 scale-90" : "opacity-100 scale-100"
             }`}
         >
-          <div className="w-[200px] sm:w-[300px] md:w-[380px] lg:w-[460px]">
+          <div className="w-[150px]">
+            <StrokeText
+              text="TEAM"
+              strokeColor="#EF4444"
+              fillColor="#EF4444"
+              strokeWidth={2}
+              drawDuration={1.2}
+              fillDelay={0.1}
+              stagger={0.07}
+              fontSize={28}
+              fontWeight={400}
+              letterSpacing={8}
+              trigger="mount"
+              fillMode="fade"
+              fontFamily="var(--font-black-ops), 'Black Ops One', system-ui, sans-serif"
+            />
+          </div>
+          <div className="w-[210px] -mt-1">
+            <StrokeText
+              text="MATRIX"
+              strokeColor="#EF4444"
+              fillColor="#F8FAFC"
+              strokeWidth={1.6}
+              drawDuration={1.5}
+              fillDelay={0.15}
+              stagger={0.05}
+              fillMode="wipe"
+              fontSize={54}
+              fontWeight={400}
+              letterSpacing={-1}
+              trigger="mount"
+              fontFamily="var(--font-black-ops), 'Black Ops One', system-ui, sans-serif"
+            />
+          </div>
+        </div>
+
+        {/* sm and up: stacked to the LEFT of the logo */}
+        <div
+          className={`hidden sm:flex fixed sm:right-[calc(50%+9.5rem)] md:right-[calc(50%+12.5rem)] lg:right-[calc(50%+14.5rem)] top-1/2 -translate-y-1/2 flex-col items-center justify-center text-center pointer-events-none transition-all duration-500 ease-out ${isMovedToNav ? "opacity-0 scale-90" : "opacity-100 scale-100"
+            }`}
+        >
+          <div className="w-[300px] md:w-[380px] lg:w-[460px]">
             <StrokeText
               text="TEAM"
               strokeColor="#EF4444"
@@ -512,7 +638,7 @@ export default function TubeLightLogo() {
             />
           </div>
 
-          <div className="w-[280px] sm:w-[440px] md:w-[580px] lg:w-[680px] -mt-2 sm:-mt-4">
+          <div className="w-[440px] md:w-[580px] lg:w-[680px] -mt-2 sm:-mt-4">
             <StrokeText
               text="MATRIX"
               strokeColor="#EF4444"
@@ -534,18 +660,29 @@ export default function TubeLightLogo() {
         {/* INITIAL PAGE LOADING INDICATOR BELOW LOGO */}
         {!isMovedToNav && (
           <div
-            className={`fixed left-1/2 -translate-x-1/2 top-[70%] sm:top-[74%] flex flex-col items-center justify-center space-y-3.5 pointer-events-none z-50 transition-opacity duration-700 ${isAssetsLoaded && introFinished ? "opacity-0" : "opacity-100"
-              }`}
+            className={`fixed left-1/2 -translate-x-1/2 top-[70%] sm:top-[74%] flex flex-col items-center justify-center space-y-3.5 pointer-events-none z-50 transition-opacity duration-700`}
           >
-            <div className="text-center font-mono text-xs sm:text-sm tracking-[0.4em] text-red-500 font-bold uppercase animate-pulse drop-shadow-[0_0_14px_rgba(239,68,68,0.9)]">
-              loading {Math.round(loadProgress)}%
+            {/* Loading progress — fades once assets ready */}
+            <div className={`flex flex-col items-center gap-3 transition-opacity duration-700 ${readyForScroll ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+              <div className="text-center font-mono text-xs sm:text-sm tracking-[0.4em] text-red-500 font-bold uppercase animate-pulse">
+                loading {Math.round(loadProgress)}%
+              </div>
+              {/* Material You Capsule Loading Bar */}
+              <div className="w-56 sm:w-72 md:w-80 h-2.5 sm:h-3 bg-slate-950/80 rounded-full overflow-hidden border border-red-500/30 p-0.5 backdrop-blur-md">
+                <div
+                  className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-400 rounded-full transition-all duration-300"
+                  style={{ width: `${loadProgress}%` }}
+                />
+              </div>
             </div>
-            {/* Material You Capsule Curved Loading Bar */}
-            <div className="w-56 sm:w-72 md:w-80 h-2.5 sm:h-3 bg-slate-950/80 rounded-full overflow-hidden border border-red-500/40 p-0.5 shadow-[0_0_20px_rgba(239,68,68,0.35)] backdrop-blur-md">
-              <div
-                className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-red-400 rounded-full transition-all duration-300 shadow-[0_0_14px_rgba(239,68,68,0.9)]"
-                style={{ width: `${loadProgress}%` }}
-              />
+            {/* SCROLL TO ENTER — appears after 3s delay */}
+            <div className={`flex flex-col items-center gap-3 transition-all duration-700 ${readyForScroll ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+              <div className="px-5 py-2 rounded-full border border-red-500/40 bg-black/50 text-red-300 text-xs font-mono tracking-[0.3em] backdrop-blur-md animate-pulse">
+                SCROLL TO ENTER
+              </div>
+              <div className="w-5 h-9 rounded-full border-2 border-red-500/40 flex items-start justify-center p-1 bg-black/30 backdrop-blur-sm">
+                <div className="w-1.5 h-2.5 bg-red-500/80 rounded-full animate-bounce" />
+              </div>
             </div>
           </div>
         )}
@@ -563,14 +700,14 @@ export default function TubeLightLogo() {
 
             {/* LEFT HALF: ABOUT TEAM MATRIX */}
             <div className="flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between border-b border-red-500/30 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
-                  <h2 className="text-sm sm:text-base font-mono tracking-[0.2em] text-red-400 font-bold uppercase">
+              <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-b border-red-500/30 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)] flex-shrink-0" />
+                  <h2 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
                     ABOUT TEAM MATRIX
                   </h2>
                 </div>
-                <span className="text-[10px] sm:text-xs font-mono text-slate-400 tracking-wider">
+                <span className="text-[9px] sm:text-xs font-mono text-slate-400 tracking-tight sm:tracking-wider whitespace-nowrap">
                   OFFICIAL ROBOTICS TEAM
                 </span>
               </div>
@@ -584,20 +721,21 @@ export default function TubeLightLogo() {
 
             {/* RIGHT HALF: 16:9 VIDEO PLAYBACK */}
             <div className="flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between border-b border-red-500/30 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
-                  <h3 className="text-sm sm:text-base font-mono tracking-[0.2em] text-red-400 font-bold uppercase">
-                    TEAM MATRIX // VIDEO STREAM
+              <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-b border-red-500/30 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)] flex-shrink-0" />
+                  <h3 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
+                    <span className="sm:hidden">VIDEO STREAM</span>
+                    <span className="hidden sm:inline">TEAM MATRIX // VIDEO STREAM</span>
                   </h3>
                 </div>
                 <button
                   onClick={toggleMute}
-                  className="text-[10px] sm:text-xs font-mono text-slate-300 hover:text-red-400 tracking-wider flex items-center gap-1.5 bg-red-950/60 border border-red-500/40 px-3 py-1 rounded-full transition-colors cursor-pointer"
+                  className="text-[9px] sm:text-xs font-mono text-slate-300 hover:text-red-400 tracking-tight sm:tracking-wider flex items-center gap-1.5 bg-red-950/60 border border-red-500/40 px-2.5 sm:px-3 py-1 rounded-full transition-colors cursor-pointer whitespace-nowrap"
                 >
                   {isMuted ? (
                     <>
-                      <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                       </svg>
@@ -605,7 +743,7 @@ export default function TubeLightLogo() {
                     </>
                   ) : (
                     <>
-                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                       </svg>
                       UNMUTED
@@ -649,34 +787,15 @@ export default function TubeLightLogo() {
           </div>
         </div>
 
-        {/* FINAL STATE: TEAM MATRIX capsule — appears just below the logo in navbar */}
-        <div
-          className={`fixed top-[54px] sm:top-[60px] left-1/2 -translate-x-1/2 z-50 transition-all duration-500 delay-200 ease-out ${isMovedToNav
-            ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 scale-75 -translate-y-2 pointer-events-none"
-            }`}
-        >
-          <div className="flex items-baseline justify-center gap-2 px-4 py-1.5 rounded-full bg-[#0d0d14]/85 backdrop-blur-xl border border-white/[0.07] shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm tracking-[0.2em] leading-none">
-              TEAM
-            </span>
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-xs sm:text-sm tracking-[0.12em] leading-none drop-shadow-[0_0_10px_rgba(239,68,68,0.7)]">
-              MATRIX
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* FULL SCREEN 3D DRONE CANVAS ANIMATION */}
       <div className="fixed inset-0 z-20 pointer-events-none">
         <canvas
           ref={canvasRef}
-          className="w-full h-full object-cover filter drop-shadow-[0_0_55px_rgba(239,68,68,0.5)]"
+          className="w-full h-full object-cover"
         />
       </div>
-
-      {/* BLUEPRINT SVG CALLOUT LINES & LABELS OVERLAY */}
-      <ExplodedCallouts pauseProgress={pauseProgress} isVisible={isExplodedCalloutsVisible} />
 
       {/* TOP GRADUAL BACKDROP BLUR OVERLAY (Z-35: ABOVE CONTENT AT Z-25, BELOW NAV AT Z-40) */}
       <GradualBlur
@@ -702,197 +821,83 @@ export default function TubeLightLogo() {
         zIndex={35}
       />
 
-      {/* HERO SCROLL PROMPT */}
+      {/* HERO SCROLL PROMPT — shown after logo reaches nav */}
       <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
         <div
           className={`flex flex-col items-center gap-3 transition-all duration-700 ${!isMovedToNav || scrollProgress > 0.12 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
             }`}
         >
-          <div className="px-4 py-1.5 rounded-full border border-red-500/30 bg-red-950/40 text-red-300 text-xs font-mono tracking-widest backdrop-blur-md animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-            SCROLL TO PLAY 3D DRONE SEQUENCES
+          <div className="px-4 py-1.5 rounded-full border border-red-500/25 bg-black/50 text-red-300/80 text-center whitespace-nowrap text-[9px] tracking-[0.08em] sm:text-xs sm:tracking-widest font-mono backdrop-blur-md animate-pulse">
+            <span className="sm:hidden">SCROLL TO PLAY ANIMATION</span>
+            <span className="hidden sm:inline">SCROLL TO PLAY 3D DRONE ANIMATION</span>
           </div>
-          <div className="w-5 h-9 rounded-full border-2 border-red-500/50 flex items-start justify-center p-1 bg-black/40 backdrop-blur-sm">
-            <div className="w-1.5 h-2.5 bg-red-500 rounded-full animate-bounce" />
+          <div className="w-5 h-9 rounded-full border-2 border-red-500/40 flex items-start justify-center p-1 bg-black/40 backdrop-blur-sm">
+            <div className="w-1.5 h-2.5 bg-red-500/80 rounded-full animate-bounce" />
           </div>
         </div>
       </div>
 
-      {/* ─────────────────────────────────────────────────────────
-           NORMAL FLOW SECTIONS (after 1100vh drone animation)
-           These scroll naturally — no sticky/scroll-jacking.
-      ───────────────────────────────────────────────────────── */}
-      {/* Spacer equal to the drone scroll budget */}
-      <div style={{ height: "1100vh" }} aria-hidden="true" />
 
-      {/* ── OUR STORIES ── */}
-      <div style={{ position: "relative", zIndex: 25 }}>
-        <section
-          id="stories"
-          aria-label="Our Stories"
-          style={{
-            minHeight: "100vh",
-            paddingTop: "8vh",
-            paddingBottom: "8vh",
-            opacity: worksVisible ? 1 : 0,
-            transition: "opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
-            pointerEvents: worksVisible ? "auto" : "none",
-            overflow: "hidden",
-          }}
-        >
-        {/* Ambient red glow backdrop */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(239,68,68,0.12) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
+      {/* Spacer equal to the drone scroll budget — gives the fixed canvas animation scroll distance */}
+      <div style={{ height: "500vh" }} aria-hidden="true" />
 
-        <div
-          style={{
-            position: "relative",
-            maxWidth: "1400px",
-            margin: "0 auto",
-            padding: "0 2rem",
-          }}
-        >
-          {/* Section header */}
-          <div
-            style={{
-              marginBottom: "3.5rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-            }}
-          >
+      {/* ── FINAL SCREEN — Apply CTA + Sponsors + Footer, grouped so the whole
+          closing block is at most one viewport tall: the CTA+Sponsors pair
+          centers in the space above the footer, and the footer sits right
+          under it — reaching the bottom of the scroll shows the Apply card
+          too, not just the footer. */}
+      <div className="relative z-10 w-full min-h-screen flex flex-col">
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Apply CTA */}
+          <section className="relative w-full py-8 sm:py-10 px-6 flex flex-col items-center justify-center text-center gap-3 overflow-hidden">
             <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                marginBottom: "0.25rem",
+                background: "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(239,68,68,0.10) 0%, transparent 70%)",
               }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  width: "2.5rem",
-                  height: "2px",
-                  background: "#ef4444",
-                  boxShadow: "0 0 10px rgba(239,68,68,0.9)",
-                  borderRadius: "9999px",
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-mono), monospace",
-                  fontSize: "0.7rem",
-                  letterSpacing: "0.28em",
-                  textTransform: "uppercase",
-                  color: "rgba(239,68,68,0.85)",
-                  fontWeight: 600,
-                }}
-              >
-                TEAM MATRIX / STORIES
-              </span>
+            />
+            <div className="relative flex items-center gap-2.5 px-3 py-1 rounded-full bg-red-950/50 border border-red-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="font-mono text-[9px] tracking-[0.1em] sm:text-[10px] sm:tracking-[0.3em] text-red-400 uppercase whitespace-nowrap">Team Matrix / Recruitment</span>
             </div>
 
-            <h2
-              style={{
-                fontFamily: "var(--font-black-ops), 'Black Ops One', system-ui, sans-serif",
-                fontSize: "clamp(2.4rem, 5vw, 4.2rem)",
-                fontWeight: 400,
-                color: "#f8fafc",
-                lineHeight: 1.05,
-                letterSpacing: "-0.02em",
-                margin: 0,
-                textShadow: "0 0 40px rgba(239,68,68,0.3)",
-              }}
-            >
-              Our Stories
+            <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight">
+              Ready to Build <span className="text-red-500 drop-shadow-[0_0_24px_rgba(239,68,68,0.5)]">With Us?</span>
             </h2>
 
-            <p
-              style={{
-                fontFamily: "var(--font-geist-sans), sans-serif",
-                fontSize: "0.95rem",
-                color: "rgba(248,250,252,0.55)",
-                maxWidth: "42ch",
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              Moments from the field, the lab, and the podium — captured across every competition and milestone.
+            <p className="relative max-w-md text-sm sm:text-base text-slate-400 font-sans leading-relaxed">
+              We&apos;re always looking for passionate engineers, designers, and builders to join Team Matrix.
             </p>
-          </div>
 
-          {/* Masonry grid or loading skeleton */}
-          {worksLoading ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "1.25rem",
-              }}
+            <Link
+              href="/apply"
+              className="
+                relative group mt-1
+                px-10 py-3 rounded-full
+                bg-red-600/90 text-white
+                font-[family-name:var(--font-black-ops)] text-base sm:text-lg tracking-[0.1em]
+                border border-red-400/60
+                transition-all duration-300
+                hover:bg-red-500 hover:scale-105
+                active:scale-95
+                shadow-[0_0_30px_rgba(239,68,68,0.35),0_0_60px_rgba(239,68,68,0.15)]
+                hover:shadow-[0_0_40px_rgba(239,68,68,0.55),0_0_80px_rgba(239,68,68,0.25)]
+                overflow-hidden
+              "
             >
-              {[380, 280, 460, 320, 410, 260].map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: `${h}px`,
-                    borderRadius: "1rem",
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(239,68,68,0.12)",
-                    animation: "pulse 1.8s ease-in-out infinite",
-                    animationDelay: `${i * 0.12}s`,
-                  }}
-                />
-              ))}
-              <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.7}}`}</style>
-            </div>
-          ) : worksItems.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "4rem 0",
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: "0.8rem",
-                color: "rgba(248,250,252,0.3)",
-                letterSpacing: "0.15em",
-              }}
-            >
-              DROP .JPG / .PNG FILES INTO /public/stories/ TO POPULATE THIS GALLERY
-            </div>
-          ) : (
-            <Masonry
-              items={worksItems}
-              ease="power3.out"
-              duration={0.6}
-              stagger={0.05}
-              animateFrom="bottom"
-              scaleOnHover={true}
-              hoverScale={0.97}
-              blurToFocus={true}
-              colorShiftOnHover={false}
-              visible={worksVisible}
-            />
-          )}
+              <span className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+              <span className="relative z-10">APPLY NOW</span>
+            </Link>
+          </section>
+
+          {/* Sponsors */}
+          <SponsorsSection />
         </div>
-        </section>
+
+        {/* ── FOOTER ── */}
+        <Footer />
       </div>
-
-      {/* ── MEMBERS ── */}
-      <div id="members" style={{ position: "relative", zIndex: 25 }}>
-        <MembersSection visible={membersVisible} />
-      </div>
-
-      {/* ── SPONSORS ── */}
-      <SponsorsSection />
-
-      {/* ── FOOTER ── */}
-      <Footer />
     </div>
   );
 }

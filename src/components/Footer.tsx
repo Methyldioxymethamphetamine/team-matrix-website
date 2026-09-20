@@ -21,12 +21,12 @@ export default function Footer() {
         }}
       />
 
-      <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 pt-12 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
+      <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 pt-6 sm:pt-8 pb-5">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 lg:gap-8 items-start">
+
           {/* LEFT COLUMN: Logo & Address */}
-          <div className="md:col-span-5 flex flex-col sm:flex-row items-start gap-5">
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0">
+          <div className="md:col-span-5 flex flex-col sm:flex-row items-start gap-4">
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0">
               <Image
                 src="/tempfiles/matrix-logo (1).webp"
                 alt="Team Matrix Logo"
@@ -35,25 +35,25 @@ export default function Footer() {
               />
             </div>
 
-            <div className="flex flex-col space-y-2">
-              <h3 className="font-[family-name:var(--font-black-ops)] text-xl sm:text-2xl text-white tracking-wider">
+            <div className="flex flex-col space-y-1.5">
+              <h3 className="font-[family-name:var(--font-black-ops)] text-lg sm:text-xl text-white tracking-wider">
                 TEAM MATRIX
               </h3>
-              <p className="font-mono text-xs sm:text-sm text-slate-300 uppercase leading-relaxed tracking-wide font-medium">
+              <p className="font-mono text-[11px] sm:text-xs text-slate-300 uppercase leading-relaxed tracking-wide font-medium">
                 K.K. WAGH INSTITUTE OF ENGINEERING EDUCATION &amp; RESEARCH, NASHIK
               </p>
-              <p className="font-mono text-xs text-red-400/90 font-semibold tracking-widest uppercase">
+              <p className="font-mono text-[11px] text-red-400/90 font-semibold tracking-widest uppercase">
                 MAHARASHTRA - 422003, INDIA
               </p>
             </div>
           </div>
 
           {/* CENTER COLUMN: Quick Links */}
-          <div className="md:col-span-4 flex flex-col space-y-3">
-            <h4 className="font-[family-name:var(--font-black-ops)] text-sm tracking-[0.2em] text-red-500 uppercase">
+          <div className="md:col-span-4 flex flex-col space-y-2">
+            <h4 className="font-[family-name:var(--font-black-ops)] text-xs sm:text-sm tracking-[0.2em] text-red-500 uppercase">
               QUICK LINKS
             </h4>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 font-mono text-xs sm:text-sm tracking-wider uppercase">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-[11px] sm:text-xs tracking-wider uppercase">
               <a
                 href="#"
                 className="text-slate-300 hover:text-red-400 transition-colors duration-200"
@@ -94,9 +94,9 @@ export default function Footer() {
           </div>
 
           {/* RIGHT COLUMN: Contact Info */}
-          <div className="md:col-span-3 flex flex-col space-y-3.5 font-mono text-xs sm:text-sm">
+          <div className="md:col-span-3 flex flex-col space-y-2.5 font-mono text-[11px] sm:text-xs">
             <div className="flex items-center gap-3 text-slate-200 hover:text-red-400 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-red-950/60 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
+              <div className="w-7 h-7 rounded-full bg-red-950/60 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -117,7 +117,7 @@ export default function Footer() {
             </div>
 
             <div className="flex items-center gap-3 text-slate-200 hover:text-red-400 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-red-950/60 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
+              <div className="w-7 h-7 rounded-full bg-red-950/60 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -134,7 +134,7 @@ export default function Footer() {
               </div>
               <a
                 href="mailto:teammatrixofficials@gmail.com"
-                className="tracking-wider text-xs sm:text-xs truncate"
+                className="tracking-wider truncate min-w-0 flex-1 block"
               >
                 TEAMMATRIXOFFICIALS@GMAIL.COM
               </a>
@@ -144,7 +144,7 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM SUB-FOOTER */}
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-slate-400">
+        <div className="mt-5 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-[11px] text-slate-400">
           <p className="tracking-widest uppercase text-center sm:text-left">
             &copy; 2025 TEAM MATRIX. ALL RIGHTS RESERVED.
           </p>
