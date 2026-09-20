@@ -57,6 +57,7 @@ export default function TubeLightLogo() {
   const [isMovedToNav, setIsMovedToNav] = useState(false);
   const [readyForScroll, setReadyForScroll] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [achievementsProgress, setAchievementsProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   // Reading window.innerWidth/innerHeight during render (needed for the logo
   // scroll-scrub below) would differ between the server's render (no window)
@@ -339,26 +340,20 @@ export default function TubeLightLogo() {
         localProgress = 1;
       }
 
-      // ─── ACHIEVEMENTS ENTRY GUARD ───────────────────────────────────────
-      // The canvas is `position: fixed`, so it keeps covering the full
-      // viewport for the entire page — it doesn't "scroll away" on its own.
-      // The Achievements section (normal document flow) can start entering
-      // view from the bottom edge up to one viewport-height of scroll before
-      // its top ever reaches P=0.75, which would otherwise show the drone
-      // still fully opaque behind/around it. Force the canvas to fade out
-      // as soon as any part of Achievements becomes visible, finishing by
-      // the time it fully reaches the top. Only bother measuring this while
-      // the stage-based opacity above is still positive — once that's 0,
-      // min(0, anything) is always 0, so the DOM read (a forced layout
-      // reflow) would be pure waste for the rest of the page's scroll range.
-      if (opacity > 0) {
-        const achievementsEl = document.getElementById("achievements-section");
-        if (achievementsEl) {
-          const achTop = achievementsEl.getBoundingClientRect().top;
-          const entryFade = Math.min(1, Math.max(0, achTop / window.innerHeight));
-          opacity = Math.min(opacity, entryFade);
-        }
-      }
+      // ─── ACHIEVEMENTS PIN + CROSSFADE ───────────────────────────────────
+      // Achievements is `position: fixed` too (see JSX below), driven by its
+      // own scroll budget instead of arriving via normal document flow. Its
+      // window starts at 130vh — the same point the drone's own stage-2
+      // fade-out (P 0.65-0.75, i.e. 130vh-150vh) begins — so the two overlap
+      // and genuinely cross-dissolve instead of one finishing before the
+      // other starts. No DOM read needed (unlike the old entry guard this
+      // replaces): both fades are pure scroll-position math.
+      const ACH_START_VH = 1.3;
+      const ACH_BUDGET_VH = 2.8; // fade-in (0.6vh) + hold (1.6vh, "a few scrolls") + fade-out (0.6vh)
+      const achStartPx = ACH_START_VH * window.innerHeight;
+      const achBudgetPx = ACH_BUDGET_VH * window.innerHeight;
+      const achP = Math.min(1, Math.max(0, (scrollY - achStartPx) / achBudgetPx));
+      setAchievementsProgress(achP);
 
       // Once fully faded there is nothing left to draw — clear the canvas
       // once and then leave it alone instead of re-clearing and re-measuring
@@ -452,6 +447,18 @@ export default function TubeLightLogo() {
     } else {
       aboutOpacity = 0;
     }
+  }
+
+  // Achievements pin/crossfade — see the ACH_START_VH/ACH_BUDGET_VH comment
+  // in the scroll rAF loop above. Symmetric 0.6vh fade-in/fade-out either
+  // side of a 1.6vh hold, expressed as fractions of the 2.8vh total budget.
+  let achievementsOpacity = 0;
+  if (achievementsProgress < 0.214) {
+    achievementsOpacity = achievementsProgress / 0.214; // crossfades in against the drone's fade-out
+  } else if (achievementsProgress < 0.786) {
+    achievementsOpacity = 1; // held on screen for a few scrolls
+  } else {
+    achievementsOpacity = Math.max(0, 1 - (achievementsProgress - 0.786) / 0.214); // crossfades out into Sponsors
   }
 
   // Auto pause about-video when user scrolls away
@@ -946,14 +953,24 @@ export default function TubeLightLogo() {
       </div>
 
 
-      {/* Spacer is 250vh: 150vh (0.75 of the 200vh DRONE_VH budget) where the canvas
-          fade-out finishes, plus one extra 100vh viewport-height so Achievements (a
-          normal-flow section) is still fully below the fold while that fade plays out,
-          instead of peeking up from the bottom while the drone is still opaque. */}
-      <div style={{ height: "250vh" }} aria-hidden="true" />
+      {/* Spacer reserves scroll distance for the whole drone -> Achievements -> Sponsors
+          sequence: 130vh of drone playback/hold, then the 280vh Achievements pin budget
+          (ACH_START_VH + ACH_BUDGET_VH above) during which Achievements is fixed on
+          screen and Sponsors sits waiting in normal flow right after this spacer ends. */}
+      <div style={{ height: "410vh" }} aria-hidden="true" />
 
-      {/* ACHIEVEMENTS SHOWCASE — appears immediately once the drone spacer scroll ends */}
-      <AchievementsShowcase />
+      {/* ACHIEVEMENTS SHOWCASE — pinned full-screen like the drone canvas, its opacity
+          driven by achievementsOpacity so it cross-dissolves with the drone on the way
+          in and with Sponsors (arriving in normal flow right underneath) on the way out. */}
+      <div
+        className="fixed inset-0 z-30"
+        style={{
+          opacity: achievementsOpacity,
+          pointerEvents: achievementsOpacity > 0.05 ? "auto" : "none",
+        }}
+      >
+        <AchievementsShowcase />
+      </div>
 
       {/* ── FINAL SCREEN — Sponsors + Apply CTA + Footer. Sponsors now leads
           (its own min-h takes a full chunk of the screen), the Apply CTA

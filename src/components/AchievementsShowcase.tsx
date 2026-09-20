@@ -39,12 +39,11 @@ function useIsDesktop(breakpointPx = 640) {
   return isDesktop;
 }
 
-// Rendered as a static, prop-less child of TubeLightLogo, which re-renders on
-// every scroll frame — memoizing means this whole subtree is skipped on
-// every one of those (its own internal state, e.g. the active carousel
-// index, still re-renders it normally — memo only blocks parent-driven
-// re-renders with unchanged props). The DOM node TubeLightLogo's drone-fade
-// entry guard looks up via getElementById is unaffected either way.
+// Rendered inside a `fixed inset-0` wrapper in TubeLightLogo whose opacity is
+// scroll-driven (the achievements pin/crossfade) — this component itself has
+// no props, so memo still skips reconciling this subtree on every one of
+// TubeLightLogo's scroll-frame re-renders; only the wrapper's inline opacity
+// style changes each frame while the pin is active.
 function AchievementsShowcase() {
   const [activeIndex, setActiveIndex] = useState(0);
   const active = captions[activeIndex];
@@ -58,9 +57,7 @@ function AchievementsShowcase() {
 
   return (
     <section
-      id="achievements-section"
-      className="relative z-30 w-full min-h-screen flex flex-col items-center justify-start pt-20 sm:pt-24 pb-6 sm:pb-8 overflow-x-hidden"
-      style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+      className="relative z-auto w-full h-full flex flex-col items-center justify-center pt-20 sm:pt-24 pb-6 sm:pb-8 overflow-x-hidden"
     >
       <Reveal>
         <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center drop-shadow-[0_0_20px_rgba(239,68,68,0.25)] mb-2 sm:mb-3 px-4">
