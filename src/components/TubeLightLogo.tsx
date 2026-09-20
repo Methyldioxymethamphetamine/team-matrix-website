@@ -214,8 +214,11 @@ export default function TubeLightLogo() {
       const scrollY = window.scrollY;
 
       // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
-      // Drone animation runs across 500vh of scrolling (= 5 * innerHeight px).
-      const DRONE_VH = 5; // 500vh expressed as viewport-height multiples
+      // Drone animation runs across 350vh of scrolling (= 3.5 * innerHeight px).
+      // Higher scroll sensitivity than a 1:1 budget — the same physical scroll
+      // covers more of the animation. Keep this in sync with the spacer height
+      // below, or the animation will finish with unscrolled empty space left.
+      const DRONE_VH = 3.5; // 350vh expressed as viewport-height multiples
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
@@ -234,7 +237,7 @@ export default function TubeLightLogo() {
       // Stage 1 (0.18 -> 0.55): drone.webm scroll animation plays (0% to 100% of seq1Images)
       // Stage 1.5 (0.55 -> 0.65): Hold drone.webm last frame static
       // Stage 2 (0.65 -> 0.75): Fade out drone canvas smoothly — finishes well before P=0.80, the
-      //   point where the Apply CTA section (right after this 500vh spacer) starts entering the
+      //   point where the Apply CTA section (right after this 350vh spacer) starts entering the
       //   viewport from below. Without that margin, the fixed full-screen canvas (z-20) would still
       //   be opaque/fading on top of the CTA while it scrolls in, hiding it underneath.
       // Stage 3 (0.75 -> 1.00): Fully hidden — nothing left to draw, canvas is inert.
@@ -401,7 +404,7 @@ export default function TubeLightLogo() {
       {/* ── SCROLL ANCHORS ── */}
       {/* #about  → About Team Matrix section (visible 0–1.98vh, anchor at 100vh) */}
       <div id="about"  aria-hidden="true" style={{ position: "absolute", top: "100vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
-      {/* #drones → drone animation starts at P≈0.20 of 500vh = ~100vh scroll */}
+      {/* #drones → drone animation starts at P≈0.20 of 350vh = ~70vh scroll */}
       <div id="drones" aria-hidden="true" style={{ position: "absolute", top: "200vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
 
       {/* THREE-ISLAND NAV: Left | Center logo | Right */}
@@ -838,8 +841,8 @@ export default function TubeLightLogo() {
       </div>
 
 
-      {/* Spacer equal to the drone scroll budget — gives the fixed canvas animation scroll distance */}
-      <div style={{ height: "500vh" }} aria-hidden="true" />
+      {/* Spacer equal to the drone scroll budget (DRONE_VH above) — gives the fixed canvas animation scroll distance */}
+      <div style={{ height: "350vh" }} aria-hidden="true" />
 
       {/* ── FINAL SCREEN — Apply CTA + Sponsors + Footer, grouped so the whole
           closing block is at most one viewport tall: the CTA+Sponsors pair
