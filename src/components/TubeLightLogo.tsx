@@ -11,6 +11,7 @@ import GradualBlur from "./GradualBlur";
 import Strands from "./Strands";
 import SponsorsSection from "./SponsorsSection";
 import Footer from "./Footer";
+import AchievementsShowcase from "./AchievementsShowcase";
 
 const DRONE_1_COUNT = 60;
 
@@ -214,11 +215,14 @@ export default function TubeLightLogo() {
       const scrollY = window.scrollY;
 
       // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
-      // Drone animation runs across 350vh of scrolling (= 3.5 * innerHeight px).
-      // Higher scroll sensitivity than a 1:1 budget — the same physical scroll
-      // covers more of the animation. Keep this in sync with the spacer height
-      // below, or the animation will finish with unscrolled empty space left.
-      const DRONE_VH = 3.5; // 350vh expressed as viewport-height multiples
+      // P is computed against a 200vh budget. The spacer below is 250vh — one
+      // viewport-height (the "approach" distance before a normal-flow section
+      // starts peeking up from the bottom edge) beyond the 150vh point where
+      // the fade-out (stage 2) finishes. That way Achievements is still fully
+      // below the fold while the drone is fading, and only starts entering
+      // view once the canvas is already inert — see the entry guard below,
+      // which also fades the canvas early as a safety net if it doesn't.
+      const DRONE_VH = 2.0; // 200vh expressed as viewport-height multiples
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
@@ -236,10 +240,8 @@ export default function TubeLightLogo() {
       // Stage 0.5 (0.12 -> 0.18): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
       // Stage 1 (0.18 -> 0.55): drone.webm scroll animation plays (0% to 100% of seq1Images)
       // Stage 1.5 (0.55 -> 0.65): Hold drone.webm last frame static
-      // Stage 2 (0.65 -> 0.75): Fade out drone canvas smoothly — finishes well before P=0.80, the
-      //   point where the Apply CTA section (right after this 350vh spacer) starts entering the
-      //   viewport from below. Without that margin, the fixed full-screen canvas (z-20) would still
-      //   be opaque/fading on top of the CTA while it scrolls in, hiding it underneath.
+      // Stage 2 (0.65 -> 0.75): Fade out drone canvas smoothly — finishes one full
+      //   viewport-height of scroll before Achievements' top can reach the bottom edge.
       // Stage 3 (0.75 -> 1.00): Fully hidden — nothing left to draw, canvas is inert.
       if (P < 0.12) {
         opacity = 0; // Completely hidden while About Team Matrix box takes over screen
@@ -261,6 +263,23 @@ export default function TubeLightLogo() {
       } else {
         opacity = 0;
         localProgress = 1;
+      }
+
+      // ─── ACHIEVEMENTS ENTRY GUARD ───────────────────────────────────────
+      // The canvas is `position: fixed`, so it keeps covering the full
+      // viewport for the entire page — it doesn't "scroll away" on its own.
+      // The Achievements section (normal document flow) can start entering
+      // view from the bottom edge up to one viewport-height of scroll before
+      // its top ever reaches P=0.75, which would otherwise show the drone
+      // still fully opaque behind/around it. Force the canvas to fade out
+      // as soon as any part of Achievements becomes visible, finishing by
+      // the time it fully reaches the top — this fires independently of
+      // (and can only shorten) the stage-based fade above.
+      const achievementsEl = document.getElementById("achievements-section");
+      if (achievementsEl) {
+        const achTop = achievementsEl.getBoundingClientRect().top;
+        const entryFade = Math.min(1, Math.max(0, achTop / window.innerHeight));
+        opacity = Math.min(opacity, entryFade);
       }
 
       const parent = canvas.parentElement;
@@ -404,7 +423,7 @@ export default function TubeLightLogo() {
       {/* ── SCROLL ANCHORS ── */}
       {/* #about  → About Team Matrix section (visible 0–1.98vh, anchor at 100vh) */}
       <div id="about"  aria-hidden="true" style={{ position: "absolute", top: "100vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
-      {/* #drones → drone animation starts at P≈0.20 of 350vh = ~70vh scroll */}
+      {/* #drones → drone animation starts at P≈0.20 of 200vh = ~40vh scroll */}
       <div id="drones" aria-hidden="true" style={{ position: "absolute", top: "200vh",  left: 0, width: 1, height: 1, pointerEvents: "none" }} />
 
       {/* THREE-ISLAND NAV: Left | Center logo | Right */}
@@ -521,50 +540,6 @@ export default function TubeLightLogo() {
             : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 sm:w-72 md:w-88 lg:w-[380px]"
             }`}
         >
-          {/* Breathing circuit ring — only visible in nav state */}
-          {isMovedToNav && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ transform: "scale(3.2)" }}>
-              <svg width="72" height="72" viewBox="0 0 72 72" fill="none" className="circuit-ring-nav" aria-hidden="true">
-                <style>{`
-                  @keyframes breatheNav {
-                    0%, 100% { opacity: 0.15; transform: scale(1); }
-                    50%       { opacity: 0.40; transform: scale(1.06); }
-                  }
-                  .circuit-ring-nav {
-                    animation: breatheNav 3.4s ease-in-out infinite;
-                    transform-origin: center;
-                  }
-                `}</style>
-                <circle cx="36" cy="36" r="33" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="4 3" />
-                <circle cx="36" cy="36" r="26" stroke="#ef4444" strokeWidth="0.5" strokeDasharray="2 4" />
-                {[0, 90, 180, 270].map((angle) => {
-                  const rad = (angle * Math.PI) / 180;
-                  return (
-                    <line key={angle}
-                      x1={36 + 27 * Math.cos(rad)} y1={36 + 27 * Math.sin(rad)}
-                      x2={36 + 33 * Math.cos(rad)} y2={36 + 33 * Math.sin(rad)}
-                      stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"
-                    />
-                  );
-                })}
-                {[45, 135, 225, 315].map((angle) => {
-                  const rad = (angle * Math.PI) / 180;
-                  return (
-                    <line key={angle}
-                      x1={36 + 29 * Math.cos(rad)} y1={36 + 29 * Math.sin(rad)}
-                      x2={36 + 33 * Math.cos(rad)} y2={36 + 33 * Math.sin(rad)}
-                      stroke="#ef4444" strokeWidth="0.8" strokeLinecap="round"
-                    />
-                  );
-                })}
-                <path d="M 36 3 L 36 10 M 36 62 L 36 69 M 3 36 L 10 36 M 62 36 L 69 36" stroke="#ef4444" strokeWidth="0.7" />
-                <path d="M 15 15 L 20 20 M 57 15 L 52 20 M 15 57 L 20 52 M 57 57 L 52 52" stroke="#ef4444" strokeWidth="0.5" />
-                {[[18,18],[52,18],[18,52],[52,52]].map(([cx, cy], i) => (
-                  <rect key={i} x={cx-2} y={cy-2} width="4" height="4" rx="0.5" stroke="#ef4444" strokeWidth="0.6" fill="none" />
-                ))}
-              </svg>
-            </div>
-          )}
           <Image
             src="/tempfiles/matrixlogo (2).png"
             alt="Matrix Logo"
@@ -841,8 +816,14 @@ export default function TubeLightLogo() {
       </div>
 
 
-      {/* Spacer equal to the drone scroll budget (DRONE_VH above) — gives the fixed canvas animation scroll distance */}
-      <div style={{ height: "350vh" }} aria-hidden="true" />
+      {/* Spacer is 250vh: 150vh (0.75 of the 200vh DRONE_VH budget) where the canvas
+          fade-out finishes, plus one extra 100vh viewport-height so Achievements (a
+          normal-flow section) is still fully below the fold while that fade plays out,
+          instead of peeking up from the bottom while the drone is still opaque. */}
+      <div style={{ height: "250vh" }} aria-hidden="true" />
+
+      {/* ACHIEVEMENTS SHOWCASE — appears immediately once the drone spacer scroll ends */}
+      <AchievementsShowcase />
 
       {/* ── FINAL SCREEN — Apply CTA + Sponsors + Footer, grouped so the whole
           closing block is at most one viewport tall: the CTA+Sponsors pair
