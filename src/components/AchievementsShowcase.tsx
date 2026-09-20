@@ -22,7 +22,7 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 // space around it (reported on Android). Pick proportionally smaller props
 // on narrow viewports instead of relying on that floor to save it.
 const DESKTOP_CAROUSEL_PROPS = { cardWidth: 560, cardHeight: 360, radius: 48, depth: 100, spread: 260 };
-const MOBILE_CAROUSEL_PROPS = { cardWidth: 260, cardHeight: 168, radius: 24, depth: 48, spread: 120 };
+const MOBILE_CAROUSEL_PROPS = { cardWidth: 340, cardHeight: 220, radius: 28, depth: 60, spread: 60 };
 
 function useIsDesktop(breakpointPx = 640) {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -66,7 +66,7 @@ export default function AchievementsShowcase() {
         Achievements
       </h2>
 
-      <div className={`w-full overflow-hidden ${isDesktop ? "h-[480px] md:h-[520px]" : "h-[220px]"}`}>
+      <div className={`w-full overflow-hidden ${isDesktop ? "h-[480px] md:h-[520px]" : "h-[260px]"}`}>
         <DepthCarousel
           items={items}
           tilt={0}
@@ -77,8 +77,13 @@ export default function AchievementsShowcase() {
         />
       </div>
 
-      {/* Caption readout for the active card */}
-      <div className="mt-3 sm:mt-4 max-w-2xl mx-auto text-center px-4">
+      {/* Caption readout for the active card — max-w doubled on desktop (2xl = 42rem -> 84rem)
+          so the longer captions have more room per line now that the font is bigger; mobile
+          keeps the original width since the screen itself is the limiting factor there.
+          `w-full` is required here: this is a flex child of the `items-center` section
+          above, which shrinks children to fit their content by default, so max-w alone
+          would only matter for captions already longer than the old 2xl cap. */}
+      <div className="mt-3 sm:mt-4 w-full max-w-2xl sm:max-w-[84rem] mx-auto text-center px-4">
         <p className="font-sans text-lg sm:text-2xl md:text-3xl text-white leading-snug transition-opacity duration-300">
           {active.caption}
         </p>

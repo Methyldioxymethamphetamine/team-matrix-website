@@ -260,25 +260,32 @@ export default function DepthCarousel({
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
+    // One wheel "gesture" advances exactly one slide, instead of dragging the
+    // carousel continuously by the raw scroll delta (which needed several
+    // notches to move a single card). A short lock after each trigger
+    // absorbs the flurry of small events a single trackpad swipe or mouse
+    // notch fires, so that whole gesture only ever counts as one step.
+    let locked = false;
     const onWheel = (e: WheelEvent) => {
       const cfg = cfgRef.current;
       if (cfg.count < 2) return;
       e.preventDefault();
-      tweenRef.current?.kill();
+      if (locked) return;
       const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      const delta = e.deltaMode === 1 ? raw * 24 : raw;
-      const step = clamp(delta / (cfg.cardWidth * 0.9), -0.6, 0.6);
-      posRef.current += step;
-      layout(posRef.current);
+      if (Math.abs(raw) < 1) return;
+      locked = true;
+      navigateBy(raw > 0 ? 1 : -1);
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
-      wheelTimerRef.current = setTimeout(() => setFocus(Math.round(posRef.current), true), 130);
+      wheelTimerRef.current = setTimeout(() => {
+        locked = false;
+      }, Math.max(cfgRef.current.duration, 350));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       el.removeEventListener("wheel", onWheel);
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
     };
-  }, [layout, setFocus]);
+  }, [navigateBy]);
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const cfg = cfgRef.current;
