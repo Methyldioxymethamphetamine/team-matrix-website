@@ -20,7 +20,7 @@ export default function SponsorsSection() {
     <section
       id="sponsors"
       aria-label="Our Sponsors"
-      className="relative z-25 w-full py-6 sm:py-8 bg-[#0a0a0f] border-t border-red-500/10 overflow-hidden"
+      className="relative z-25 w-full min-h-[55vh] sm:min-h-[60vh] flex flex-col justify-center pt-10 sm:pt-14 pb-20 sm:pb-24 border-t border-red-500/10 overflow-hidden"
     >
       {/* Ambient background glow */}
       <div
@@ -31,7 +31,7 @@ export default function SponsorsSection() {
         }}
       />
 
-      <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 mb-4">
+      <div className="relative max-w-[1800px] mx-auto px-6 sm:px-8 mb-6 sm:mb-8">
         <div className="flex flex-col items-center text-center space-y-1.5">
           <div className="flex items-center gap-3">
             <span className="hidden sm:block w-8 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)] rounded-full" />
@@ -41,24 +41,24 @@ export default function SponsorsSection() {
             <span className="hidden sm:block w-8 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)] rounded-full" />
           </div>
 
-          <h2 className="font-[family-name:var(--font-black-ops)] text-xl sm:text-2xl md:text-3xl text-white tracking-wide drop-shadow-[0_0_25px_rgba(239,68,68,0.3)]">
+          <h2 className="font-[family-name:var(--font-black-ops)] text-2xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow-[0_0_25px_rgba(239,68,68,0.3)]">
             POWERING OUR INNOVATION
           </h2>
 
-          <p className="font-sans text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
+          <p className="font-sans text-sm sm:text-base text-slate-400 max-w-xl leading-relaxed">
             Proudly backed by industry leaders and visionary organizations driving our robotic achievements forward.
           </p>
         </div>
       </div>
 
       {/* Infinite Logo Loop */}
-      <div className="relative w-full py-1">
+      <div className="relative w-full py-4 sm:py-6">
         <LogoLoop
           logos={sponsorLogos}
           speed={65}
           direction="left"
-          logoHeight={100}
-          gap={36}
+          logoHeight={165}
+          gap={56}
           hoverSpeed={0}
           scaleOnHover={true}
           fadeOut={true}

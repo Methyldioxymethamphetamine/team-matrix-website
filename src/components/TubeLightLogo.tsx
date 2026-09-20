@@ -917,8 +917,7 @@ export default function TubeLightLogo() {
             }`}
         >
           <div className="px-4 py-1.5 rounded-full border border-red-500/25 bg-black/50 text-red-300/80 text-center whitespace-nowrap text-[9px] tracking-[0.08em] sm:text-xs sm:tracking-widest font-mono backdrop-blur-md animate-pulse">
-            <span className="sm:hidden">SCROLL TO PLAY ANIMATION</span>
-            <span className="hidden sm:inline">SCROLL TO PLAY 3D DRONE ANIMATION</span>
+            SCROLL DOWN
           </div>
           <div className="w-5 h-9 rounded-full border-2 border-red-500/40 flex items-start justify-center p-1 bg-black/40 backdrop-blur-sm">
             <div className="w-1.5 h-2.5 bg-red-500/80 rounded-full animate-bounce" />
@@ -936,16 +935,17 @@ export default function TubeLightLogo() {
       {/* ACHIEVEMENTS SHOWCASE — appears immediately once the drone spacer scroll ends */}
       <AchievementsShowcase />
 
-      {/* ── FINAL SCREEN — Apply CTA + Sponsors + Footer, grouped so the whole
-          closing block is at most one viewport tall: the CTA+Sponsors pair
-          centers in the space above the footer, and the footer sits right
-          under it — reaching the bottom of the scroll shows the Apply card
-          too, not just the footer. */}
+      {/* ── FINAL SCREEN — Sponsors + Apply CTA + Footer. Sponsors now leads
+          (its own min-h takes a full chunk of the screen), the Apply CTA
+          follows, and the footer sits right under that pair. */}
       <div
         className="relative z-10 w-full min-h-screen flex flex-col pt-24"
         style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
       >
         <div className="flex-1 flex flex-col justify-center">
+          {/* Sponsors */}
+          <SponsorsSection />
+
           {/* Apply CTA */}
           <section className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-6 flex flex-col items-center justify-center text-center gap-3 overflow-hidden">
             <div
@@ -988,9 +988,6 @@ export default function TubeLightLogo() {
               <span className="relative z-10">APPLY NOW</span>
             </Link>
           </section>
-
-          {/* Sponsors */}
-          <SponsorsSection />
         </div>
 
         {/* ── FOOTER ── */}

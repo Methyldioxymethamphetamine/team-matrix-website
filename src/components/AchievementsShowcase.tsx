@@ -62,8 +62,12 @@ export default function AchievementsShowcase() {
       {/* DepthCarousel centers its cards vertically within this box's full height, so its
           height is kept close to the card's own height (cardHeight above) rather than
           generously oversized — the difference is dead space split above and below the
-          image, which is what made the heading feel far from the picture. */}
-      <div className={`w-full overflow-hidden ${isDesktop ? "h-[400px] md:h-[420px]" : "h-[220px]"}`}>
+          image, which is what made the heading feel far from the picture. Mobile keeps
+          ~40px of headroom beyond MOBILE_CAROUSEL_PROPS.cardHeight (220) since on wider
+          "mobile" widths (up to the 640px breakpoint) DepthCarousel's auto-scale can reach
+          1x, i.e. the full 220px card — with no headroom the image touched this box's
+          edges and got clipped by overflow-hidden. */}
+      <div className={`w-full overflow-hidden ${isDesktop ? "h-[400px] md:h-[420px]" : "h-[260px]"}`}>
         <DepthCarousel
           items={items}
           tilt={0}
@@ -80,7 +84,7 @@ export default function AchievementsShowcase() {
           `w-full` is required here: this is a flex child of the `items-center` section
           above, which shrinks children to fit their content by default, so max-w alone
           would only matter for captions already longer than the old 2xl cap. */}
-      <div className="mt-3 sm:mt-4 w-full max-w-2xl sm:max-w-[84rem] mx-auto text-center px-4">
+      <div className="mt-6 sm:mt-4 w-full max-w-2xl sm:max-w-[84rem] mx-auto text-center px-4">
         <p className="font-sans text-lg sm:text-2xl md:text-3xl text-white leading-snug transition-opacity duration-300">
           {active.caption}
         </p>
