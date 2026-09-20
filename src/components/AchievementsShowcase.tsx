@@ -55,18 +55,15 @@ export default function AchievementsShowcase() {
       className="relative z-30 w-full min-h-screen flex flex-col items-center justify-start pt-20 sm:pt-24 pb-6 sm:pb-8 overflow-x-hidden"
       style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
     >
-      <div className="flex items-center justify-center gap-2.5 mb-2 sm:mb-3 px-4">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
-        <span className="font-mono text-[10px] sm:text-xs tracking-[0.25em] sm:tracking-[0.3em] text-red-400 uppercase whitespace-nowrap">
-          Team Matrix / Achievements
-        </span>
-      </div>
-
-      <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center drop-shadow-[0_0_20px_rgba(239,68,68,0.25)] mb-3 sm:mb-4 px-4">
+      <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center drop-shadow-[0_0_20px_rgba(239,68,68,0.25)] mb-2 sm:mb-3 px-4">
         Achievements
       </h2>
 
-      <div className={`w-full overflow-hidden ${isDesktop ? "h-[480px] md:h-[520px]" : "h-[260px]"}`}>
+      {/* DepthCarousel centers its cards vertically within this box's full height, so its
+          height is kept close to the card's own height (cardHeight above) rather than
+          generously oversized — the difference is dead space split above and below the
+          image, which is what made the heading feel far from the picture. */}
+      <div className={`w-full overflow-hidden ${isDesktop ? "h-[400px] md:h-[420px]" : "h-[220px]"}`}>
         <DepthCarousel
           items={items}
           tilt={0}
@@ -87,9 +84,6 @@ export default function AchievementsShowcase() {
         <p className="font-sans text-lg sm:text-2xl md:text-3xl text-white leading-snug transition-opacity duration-300">
           {active.caption}
         </p>
-        {active.note && (
-          <p className="mt-1.5 font-mono text-xs sm:text-sm text-red-300/70">{active.note}</p>
-        )}
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import gsap from "gsap";
@@ -15,15 +15,51 @@ import AchievementsShowcase from "./AchievementsShowcase";
 
 const DRONE_1_COUNT = 60;
 
+// Runs before paint on the client (no SSR flash of the wrong value), falls
+// back to a plain effect on the server where layout effects are a no-op.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export default function TubeLightLogo() {
   const containerRef = useRef<HTMLDivElement>(null);
   const logoGroupRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  // Ratchet for the logo's center->nav scroll-scrub: the highest progress
+  // reached so far, so scrolling back up doesn't pull the logo back toward
+  // center once it has arrived (or partway arrived) at the nav slot.
+  const [maxLogoNavT, setMaxLogoNavT] = useState(0);
+  // The nav logo's vertical center once docked, measured from the real header
+  // instead of hand-copied pixel guesses, so it lines up with the nav links'
+  // own text row exactly (the header's height differs — hamburger vs. link
+  // pills — below/above the md breakpoint). offsetHeight is used rather than
+  // getBoundingClientRect because the header animates in with a CSS
+  // translate-y that we don't want reflected in this measurement.
+  const [navRowCenterY, setNavRowCenterY] = useState(32);
 
   const [isMovedToNav, setIsMovedToNav] = useState(false);
   const [readyForScroll, setReadyForScroll] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Reading window.innerWidth/innerHeight during render (needed for the logo
+  // scroll-scrub below) would differ between the server's render (no window)
+  // and the client's — a hydration mismatch. `mounted` starts false on both,
+  // so the first client render still matches the server, then flips true
+  // before paint, well before the user could have scrolled.
+  const [mounted, setMounted] = useState(false);
+  useIsomorphicLayoutEffect(() => setMounted(true), []);
+
+  // Measure the header's real height (top-4 offset + its own box height) so
+  // the docked logo can center on the exact same row as the nav links,
+  // instead of a hand-guessed pixel offset that drifts if the header's
+  // padding/font-size ever changes.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const measure = () => setNavRowCenterY(16 + header.offsetHeight / 2);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   // Preloading & intro transition sync state
   const [isAssetsLoaded, setIsAssetsLoaded] = useState(false);
@@ -245,6 +281,8 @@ export default function TubeLightLogo() {
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
+      const rawLogoNavT = Math.min(1, Math.max(0, P / 0.12));
+      setMaxLogoNavT((prev) => (rawLogoNavT > prev ? rawLogoNavT : prev));
 
       // ─── OUR STORIES VISIBILITY ────────────────────────────────────────
       // Visible once drone animation wraps up (P >= 0.95)
@@ -424,6 +462,43 @@ export default function TubeLightLogo() {
   // Our Stories visible when: intro done + raw scroll past 2-viewport delay
   const worksVisible = isMovedToNav && worksRawVisible;
 
+  // ─── LOGO CENTER -> NAV SCRUB ─────────────────────────────────────────
+  // The logo's move from the centered hero position to the small nav slot is
+  // tied directly to scroll distance — scrollProgress 0 -> 0.12, the same
+  // 24vh window the About box uses to fade in — instead of auto-playing on a
+  // fixed-duration CSS transition. maxLogoNavT only ever grows (see the rAF
+  // loop above), so once the logo has reached — or partly reached — the nav
+  // slot, scrolling back up doesn't pull it back toward center; it stays put.
+  // Deliberately NOT gated on isMovedToNav: that flag flips on a native event
+  // listener while this is driven by the scroll-position rAF loop, and tying
+  // this to a second, independently-updated flag is an unnecessary source of
+  // desync — maxLogoNavT alone already fully captures "has scrolling started".
+  const logoNavT = maxLogoNavT;
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  // Fall back to the same fixed numbers on the server and on the client's
+  // first (pre-mount) render — see the `mounted` comment above.
+  const viewportWidth = mounted ? window.innerWidth : 1024;
+  const viewportHeight = mounted ? window.innerHeight : 800;
+  // Matches the previous responsive center sizes: w-52/sm:w-72/md:w-88(*)/lg:w-[380px].
+  // (*) "w-88" isn't a real Tailwind size, so it silently fell back to the sm value
+  // before — 352px is clearly what it meant. Nav (docked) sizes are ~5px smaller than
+  // the old w-12/sm:w-14/md:w-16, and centered on navRowCenterY rather than pinned to
+  // a fixed top offset, so the logo sits level with the nav links, not just near them.
+  const logoGeometry =
+    viewportWidth >= 1024
+      ? { start: 380, end: 59 }
+      : viewportWidth >= 768
+        ? { start: 352, end: 59 }
+        : viewportWidth >= 640
+          ? { start: 288, end: 51 }
+          : { start: 208, end: 43 };
+  const logoSize = lerp(logoGeometry.start, logoGeometry.end, logoNavT);
+  const logoTopEdge = lerp(
+    viewportHeight / 2 - logoGeometry.start / 2,
+    navRowCenterY - logoGeometry.end / 2,
+    logoNavT
+  );
+
   return (
     <div ref={containerRef} className="relative w-full bg-black text-white select-none">
       {/* Interactive Canvas DotField Background */}
@@ -452,6 +527,7 @@ export default function TubeLightLogo() {
 
       {/* THREE-ISLAND NAV: Left | Center logo | Right */}
       <header
+        ref={headerRef}
         className={`fixed top-4 left-0 right-0 z-40 flex items-center justify-between px-5 sm:px-8 pointer-events-none transition-all duration-700 ${isMovedToNav ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
       >
         {/* LEFT ISLAND: About Members Gallery — desktop only */}
@@ -559,10 +635,21 @@ export default function TubeLightLogo() {
       <div ref={logoGroupRef} className="fixed inset-0 z-50 pointer-events-none">
         {/* CENTER MATRIX LOGO EMBLEM (Transitions to top acrylic navbar center) */}
         <div
-          className={`fixed transition-all duration-700 ease-in-out pointer-events-none ${isMovedToNav
-            ? "top-2 sm:top-3 left-1/2 -translate-x-1/2 w-12 sm:w-14 md:w-16 translate-y-0"
-            : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 sm:w-72 md:w-88 lg:w-[380px]"
-            }`}
+          className={
+            logoNavT > 0
+              ? "fixed left-1/2 pointer-events-none"
+              : "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-52 sm:w-72 md:w-88 lg:w-[380px]"
+          }
+          // Before scrolling starts, plain CSS classes above size this correctly on
+          // any device from the very first paint (no window read needed). Once
+          // logoNavT is above 0 — which can only happen after a real scroll, i.e.
+          // always client-side, past hydration — this inline style takes over for
+          // the scroll-scrubbed position/size.
+          style={
+            logoNavT > 0
+              ? { top: `${logoTopEdge}px`, transform: "translateX(-50%)", width: `${logoSize}px` }
+              : undefined
+          }
         >
           <Image
             src="/tempfiles/matrixlogo (2).png"
@@ -854,10 +941,13 @@ export default function TubeLightLogo() {
           centers in the space above the footer, and the footer sits right
           under it — reaching the bottom of the scroll shows the Apply card
           too, not just the footer. */}
-      <div className="relative z-10 w-full min-h-screen flex flex-col">
+      <div
+        className="relative z-10 w-full min-h-screen flex flex-col pt-24"
+        style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+      >
         <div className="flex-1 flex flex-col justify-center">
           {/* Apply CTA */}
-          <section className="relative w-full py-8 sm:py-10 px-6 flex flex-col items-center justify-center text-center gap-3 overflow-hidden">
+          <section className="relative w-full pt-8 sm:pt-10 pb-16 sm:pb-20 px-6 flex flex-col items-center justify-center text-center gap-3 overflow-hidden">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0"
