@@ -1226,7 +1226,7 @@ export default function TubeLightLogo() {
             <Reveal delayMs={240}>
               <Link
                 ref={applyBtnRef}
-                href="https://google.com" // TEMP: was "/apply" — revert once done testing
+                href="/apply"
                 onMouseMove={handleApplyMouseMove}
                 onMouseLeave={handleApplyMouseLeave}
                 className="

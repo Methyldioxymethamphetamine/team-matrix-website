@@ -217,8 +217,6 @@ export default function Masonry({
                   display: "block",
                   transformOrigin: "center",
                   willChange: "transform",
-                  filter: "grayscale(100%) contrast(1.05)",
-                  transition: "filter 0.4s",
                 }}
               />
 
@@ -346,6 +344,20 @@ export default function Masonry({
                 overflowY: "auto",
               }}
             >
+              {selected.title && (
+                <h3
+                  style={{
+                    margin: "0 0 0.75rem",
+                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    fontSize: "1.1rem",
+                    fontWeight: 700,
+                    lineHeight: 1.3,
+                    color: "#fff",
+                  }}
+                >
+                  {selected.title}
+                </h3>
+              )}
               <p
                 style={{
                   margin: 0,
@@ -367,9 +379,6 @@ export default function Masonry({
       <style>{`
         .masonry-card:hover .masonry-hover-glow {
           border-color: rgba(239,68,68,0.45) !important;
-        }
-        .masonry-card:hover .masonry-img {
-          filter: grayscale(40%) contrast(1.08) !important;
         }
         .masonry-expand-hint {
           opacity: 0;
