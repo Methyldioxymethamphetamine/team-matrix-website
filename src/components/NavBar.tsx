@@ -94,7 +94,11 @@ export default function NavBar() {
         <div className="md:hidden w-11 h-11" aria-hidden="true" />
 
         {/* CENTER LOGO */}
-        <div className="pointer-events-auto relative flex flex-col items-center" style={{ flex: "0 0 auto" }}>
+        {/* pt-16: the triangle mark's visual weight sits in its wide top edge
+            (it tapers to a thin point at the bottom), so centering the image's
+            bounding box alone makes it look like it's sitting too high next to
+            the nav pills — this nudges it down to compensate. */}
+        <div className="pointer-events-auto relative flex flex-col items-center pt-16" style={{ flex: "0 0 auto" }}>
           <Link href="/" className="relative z-10 w-12 sm:w-14 md:w-16 block transition-transform duration-300 hover:scale-110">
             <Image
               src="/tempfiles/matrixlogo (2).png"
