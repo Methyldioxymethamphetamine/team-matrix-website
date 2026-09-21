@@ -38,26 +38,21 @@ export default function ApplyPage() {
             </p>
           </div>
 
-          {/* CTA Button — does nothing yet */}
+          {/* CTA Button — applications not yet open */}
           <button
             type="button"
-            onClick={() => {}}
+            disabled
+            aria-disabled="true"
             className="
-              group relative mt-2
+              relative mt-2
               px-10 py-4 rounded-full
-              bg-red-600/90 text-white
+              bg-red-950/40 text-slate-500
               font-[family-name:var(--font-black-ops)] text-base sm:text-lg tracking-[0.1em]
-              border border-red-400/60
-              transition-all duration-300
-              hover:bg-red-500 hover:scale-105
-              active:scale-95
-              shadow-[0_0_30px_rgba(239,68,68,0.35),0_0_60px_rgba(239,68,68,0.15)]
-              hover:shadow-[0_0_40px_rgba(239,68,68,0.55),0_0_80px_rgba(239,68,68,0.25)]
+              border border-red-900/40
+              cursor-not-allowed
               overflow-hidden
             "
           >
-            {/* Inner shimmer sweep */}
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
             <span className="relative z-10">APPLY NOW</span>
           </button>
 

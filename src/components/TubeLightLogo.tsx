@@ -658,6 +658,12 @@ export default function TubeLightLogo() {
   // desync — maxLogoNavT alone already fully captures "has scrolling started".
   const logoNavT = maxLogoNavT;
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  // Shared crossfade blur: each fixed "slide" (drone/about/achievements/sponsors)
+  // blurs out as its own opacity approaches 0 and sharpens back up as it approaches
+  // 1, so the old slide fades+blurs while the new one unfades+unblurs at the same
+  // scroll-driven rate — same opacity value drives both, just two CSS properties.
+  const CROSSFADE_MAX_BLUR_PX = 8;
+  const crossfadeBlur = (opacity: number) => `blur(${(1 - opacity) * CROSSFADE_MAX_BLUR_PX}px)`;
   // Fall back to the same fixed numbers on the server and on the client's
   // first (pre-mount) render — see the `mounted` comment above.
   const viewportWidth = mounted ? window.innerWidth : 1024;
@@ -992,6 +998,7 @@ export default function TubeLightLogo() {
           style={{
             opacity: aboutOpacity,
             transform: `translate(-50%, -50%) scale(${0.95 + 0.05 * aboutOpacity}) translateY(${(1 - aboutOpacity) * 20}px)`,
+            filter: crossfadeBlur(aboutOpacity),
             pointerEvents: aboutOpacity > 0.05 ? "auto" : "none",
           }}
         >
@@ -1089,7 +1096,10 @@ export default function TubeLightLogo() {
       </div>
 
       {/* FULL SCREEN 3D DRONE CANVAS ANIMATION */}
-      <div className="fixed inset-0 z-20 pointer-events-none">
+      <div
+        className="fixed inset-0 z-20 pointer-events-none"
+        style={{ filter: crossfadeBlur(droneOpacity) }}
+      >
         <canvas
           ref={canvasRef}
           className="w-full h-full object-cover"
@@ -1154,6 +1164,7 @@ export default function TubeLightLogo() {
             className="fixed inset-0 z-30"
             style={{
               opacity: achievementsOpacity,
+              filter: crossfadeBlur(achievementsOpacity),
               pointerEvents: achievementsOpacity > 0.05 ? "auto" : "none",
             }}
           >
@@ -1167,6 +1178,7 @@ export default function TubeLightLogo() {
             className="fixed inset-0 z-32 flex items-center justify-center"
             style={{
               opacity: sponsorsOpacity,
+              filter: crossfadeBlur(sponsorsOpacity),
               pointerEvents: sponsorsOpacity > 0.05 ? "auto" : "none",
             }}
           >
