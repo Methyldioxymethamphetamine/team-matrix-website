@@ -42,11 +42,10 @@ function ScrollLineSidebar({ stages, weights, visible, onSelect }: ScrollLineSid
           >
             <span
               aria-hidden="true"
-              className="block h-px rounded-full transition-[width,background-color,box-shadow] duration-150 ease-out"
+              className="block h-px rounded-full transition-[width,background-color] duration-150 ease-out"
               style={{
                 width: `${16 + w * 28}px`,
                 backgroundColor: w > 0.05 ? "#ef4444" : "#6c6c6c",
-                boxShadow: w > 0.05 ? `0 0 ${4 + w * 8}px rgba(239,68,68,${0.3 + w * 0.5})` : "none",
                 opacity: 0.35 + w * 0.65,
               }}
             />

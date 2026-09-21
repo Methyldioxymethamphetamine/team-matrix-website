@@ -9,13 +9,11 @@ export default function ProjectsPage() {
     <div className="relative min-h-screen w-full bg-black text-white select-none overflow-hidden">
       <div className="fixed inset-0 z-0">
         <DotField
-          dotRadius={1.6} dotSpacing={16} bulgeStrength={70} glowRadius={180}
+          dotRadius={1.6} dotSpacing={16} bulgeStrength={70}
           sparkle={true} waveAmplitude={0}
           gradientFrom="rgba(239, 68, 68, 0.25)" gradientTo="rgba(185, 28, 28, 0.10)"
-          glowColor="rgba(239, 68, 68, 0.18)"
         />
       </div>
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.10)_0%,transparent_65%)] pointer-events-none z-0" />
       <NavBar />
       <main className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4">
         <div className="flex flex-col items-center gap-4 opacity-30">

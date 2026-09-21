@@ -34,26 +34,17 @@ function SponsorsSection() {
       aria-label="Our Sponsors"
       className="relative z-25 w-full min-h-[55vh] sm:min-h-[60vh] flex flex-col justify-center pt-10 sm:pt-14 pb-20 sm:pb-24 border-t border-red-500/10 overflow-hidden"
     >
-      {/* Ambient background glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(239, 68, 68, 0.08) 0%, transparent 70%)",
-        }}
-      />
-
       <Reveal className="relative max-w-[1800px] mx-auto px-6 sm:px-8 mb-6 sm:mb-8">
         <div className="flex flex-col items-center text-center space-y-1.5">
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block w-8 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)] rounded-full" />
+            <span className="hidden sm:block w-8 h-[2px] bg-red-500 rounded-full" />
             <span className="font-mono text-[9px] tracking-[0.08em] sm:text-xs sm:tracking-[0.28em] text-red-500 font-semibold uppercase whitespace-nowrap">
               TEAM MATRIX / SPONSORS &amp; PARTNERS
             </span>
-            <span className="hidden sm:block w-8 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)] rounded-full" />
+            <span className="hidden sm:block w-8 h-[2px] bg-red-500 rounded-full" />
           </div>
 
-          <h2 className="font-[family-name:var(--font-black-ops)] text-2xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow-[0_0_25px_rgba(239,68,68,0.3)]">
+          <h2 className="font-[family-name:var(--font-black-ops)] text-2xl sm:text-3xl md:text-4xl text-white tracking-wide">
             POWERING OUR INNOVATION
           </h2>
 

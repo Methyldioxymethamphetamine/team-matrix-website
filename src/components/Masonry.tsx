@@ -243,7 +243,7 @@ export default function Masonry({
                 </span>
               </div>
 
-              {/* Red glow on hover via CSS */}
+              {/* Red border highlight on hover via CSS */}
               <div
                 className="masonry-hover-glow"
                 style={{
@@ -251,7 +251,7 @@ export default function Masonry({
                   inset: 0,
                   borderRadius: "1rem",
                   border: "1px solid rgba(239,68,68,0)",
-                  transition: "border-color 0.35s, box-shadow 0.35s",
+                  transition: "border-color 0.35s",
                   pointerEvents: "none",
                 }}
               />
@@ -367,7 +367,6 @@ export default function Masonry({
       <style>{`
         .masonry-card:hover .masonry-hover-glow {
           border-color: rgba(239,68,68,0.45) !important;
-          box-shadow: 0 0 28px rgba(239,68,68,0.22) !important;
         }
         .masonry-card:hover .masonry-img {
           filter: grayscale(40%) contrast(1.08) !important;

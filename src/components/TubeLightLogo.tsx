@@ -115,11 +115,9 @@ export default function TubeLightLogo() {
   // so it still commits before paint without diverging from the server's
   // hash-less initial render.
   const [skipIntro, setSkipIntro] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useIsomorphicLayoutEffect(() => {
     if (typeof window === "undefined") return;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) setPrefersReducedMotion(true);
     if (window.location.hash === "#about" || reducedMotion) {
       setSkipIntro(true);
     }
@@ -282,25 +280,8 @@ export default function TubeLightLogo() {
       if (!logoGroup) return;
 
       if (skipIntro) {
-        gsap.set(logoGroup, {
-          opacity: 1,
-          filter: "drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.4))",
-        });
+        gsap.set(logoGroup, { opacity: 1 });
         setIntroFinished(true);
-        // The infinite pulsing hum is exactly the kind of motion
-        // prefers-reduced-motion asks sites to drop — the #about-redirect
-        // case (skipIntro without reduced motion) keeps it for visual
-        // consistency with a normal visit; a reduced-motion visitor gets a
-        // static glow instead.
-        if (!prefersReducedMotion) {
-          gsap.to(logoGroup, {
-            filter: "drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 32px rgba(239, 68, 68, 0.35))",
-            duration: 2.8,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut",
-          });
-        }
         return;
       }
 
@@ -316,31 +297,17 @@ export default function TubeLightLogo() {
         },
       });
 
-      // Tubelight turn-on flicker sequence (reduced glow intensities)
-      tl.set(logoGroup, { opacity: 0, filter: "drop-shadow(0 0 0px rgba(239, 68, 68, 0))" })
+      // Tubelight turn-on flicker sequence
+      tl.set(logoGroup, { opacity: 0 })
         .to(logoGroup, { opacity: 0.1, duration: 0.12 })
         .to(logoGroup, { opacity: 0, duration: 0.06 })
-        .to(logoGroup, { opacity: 0.85, filter: "drop-shadow(0 0 8px rgba(239, 68, 68, 0.5))", duration: 0.05 })
-        .to(logoGroup, { opacity: 0.15, filter: "drop-shadow(0 0 2px rgba(239, 68, 68, 0.15))", duration: 0.1 })
-        .to(logoGroup, { opacity: 0.95, filter: "drop-shadow(0 0 12px rgba(239, 68, 68, 0.6))", duration: 0.04 })
-        .to(logoGroup, { opacity: 0.2, filter: "drop-shadow(0 0 3px rgba(239, 68, 68, 0.15))", duration: 0.08 })
-        .to(logoGroup, { opacity: 1, filter: "drop-shadow(0 0 15px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 28px rgba(239, 68, 68, 0.5))", duration: 0.12 })
-        .to(logoGroup, { opacity: 0.85, filter: "drop-shadow(0 0 8px rgba(239, 68, 68, 0.4))", duration: 0.06 })
-        .to(logoGroup, {
-          opacity: 1,
-          filter: "drop-shadow(0 0 12px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.4))",
-          duration: 0.15,
-        });
-
-      // Subtle ambient hum glow — much softer
-      gsap.to(logoGroup, {
-        filter: "drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 32px rgba(239, 68, 68, 0.35))",
-        duration: 2.8,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-        delay: tl.duration(),
-      });
+        .to(logoGroup, { opacity: 0.85, duration: 0.05 })
+        .to(logoGroup, { opacity: 0.15, duration: 0.1 })
+        .to(logoGroup, { opacity: 0.95, duration: 0.04 })
+        .to(logoGroup, { opacity: 0.2, duration: 0.08 })
+        .to(logoGroup, { opacity: 1, duration: 0.12 })
+        .to(logoGroup, { opacity: 0.85, duration: 0.06 })
+        .to(logoGroup, { opacity: 1, duration: 0.15 });
     },
     { scope: containerRef, dependencies: [skipIntro], revertOnUpdate: true }
   );
@@ -400,51 +367,50 @@ export default function TubeLightLogo() {
       lastInnerHeight = window.innerHeight;
 
       // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
-      // P is computed against a 200vh budget. The spacer below is 250vh — one
-      // viewport-height (the "approach" distance before a normal-flow section
-      // starts peeking up from the bottom edge) beyond the 150vh point where
-      // the fade-out (stage 2) finishes. That way Achievements is still fully
-      // below the fold while the drone is fading, and only starts entering
-      // view once the canvas is already inert — see the entry guard below,
-      // which also fades the canvas early as a safety net if it doesn't.
-      const DRONE_VH = 2.0; // 200vh expressed as viewport-height multiples
+      // P is computed against a 300vh budget: the original 200vh drone timeline
+      // (fade-in/play/hold/fade-out, unchanged in duration and relative pacing)
+      // plus one extra viewport-height (100vh) of pure hold added to the very
+      // front, so the About section stays on screen for one full extra scroll
+      // before anything starts transitioning to the drone. Every stage below
+      // is simply the old 200vh schedule shifted 100vh later.
+      const DRONE_VH = 3.0; // 300vh expressed as viewport-height multiples
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
-      const rawLogoNavT = Math.min(1, Math.max(0, P / 0.12));
+      const rawLogoNavT = Math.min(1, Math.max(0, P / 0.413333));
       setMaxLogoNavT((prev) => (rawLogoNavT > prev ? rawLogoNavT : prev));
 
       // ─── OUR STORIES VISIBILITY ────────────────────────────────────────
-      // Visible once drone animation wraps up (P >= 0.95)
-      setWorksRawVisible(P >= 0.95);
+      // Visible once drone animation wraps up (P >= 0.966667, i.e. 290vh)
+      setWorksRawVisible(P >= 0.966667);
 
       let localProgress = 0;
       let opacity = 0;
 
       // Sequence Stage 1: drone.webm (0.00 -> 1.00)
-      // Stage 0 (0.00 -> 0.12): About Section taking over screen; drone canvas hidden (opacity = 0)
-      // Stage 0.5 (0.12 -> 0.18): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
-      // Stage 1 (0.18 -> 0.55): drone.webm scroll animation plays (0% to 100% of seq1Images)
-      // Stage 1.5 (0.55 -> 0.65): Hold drone.webm last frame static
-      // Stage 2 (0.65 -> 0.75): Fade out drone canvas smoothly — finishes one full
+      // Stage 0 (0.00 -> 0.413333, i.e. 0-124vh): About Section held on screen; drone canvas hidden (opacity = 0)
+      // Stage 0.5 (0.413333 -> 0.453333, i.e. 124-136vh): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
+      // Stage 1 (0.453333 -> 0.7, i.e. 136-210vh): drone.webm scroll animation plays (0% to 100% of seq1Images)
+      // Stage 1.5 (0.7 -> 0.766667, i.e. 210-230vh): Hold drone.webm last frame static
+      // Stage 2 (0.766667 -> 0.833333, i.e. 230-250vh): Fade out drone canvas smoothly — finishes one full
       //   viewport-height of scroll before Achievements' top can reach the bottom edge.
-      // Stage 3 (0.75 -> 1.00): Fully hidden — nothing left to draw, canvas is inert.
-      if (P < 0.12) {
+      // Stage 3 (0.833333 -> 1.00, i.e. 250-300vh): Fully hidden — nothing left to draw, canvas is inert.
+      if (P < 0.413333) {
         opacity = 0; // Completely hidden while About Team Matrix box takes over screen
         localProgress = 0;
-      } else if (P < 0.18) {
-        opacity = (P - 0.12) / 0.06; // Smooth fade in of drone canvas as About box fades out
+      } else if (P < 0.453333) {
+        opacity = (P - 0.413333) / 0.04; // Smooth fade in of drone canvas as About box fades out
         localProgress = 0;
-      } else if (P < 0.55) {
+      } else if (P < 0.7) {
         opacity = 1;
-        localProgress = (P - 0.18) / 0.37; // Plays 100% of drone.webm
-      } else if (P < 0.65) {
+        localProgress = (P - 0.453333) / 0.246667; // Plays 100% of drone.webm
+      } else if (P < 0.766667) {
         // Hold last frame static
         opacity = 1;
         localProgress = 1;
-      } else if (P < 0.75) {
+      } else if (P < 0.833333) {
         // Fade out drone canvas smoothly
-        opacity = Math.max(0, 1 - (P - 0.65) / 0.10);
+        opacity = Math.max(0, 1 - (P - 0.766667) / 0.066667);
         localProgress = 1;
       } else {
         opacity = 0;
@@ -455,12 +421,12 @@ export default function TubeLightLogo() {
       // ─── ACHIEVEMENTS PIN + CROSSFADE ───────────────────────────────────
       // Achievements is `position: fixed` too (see JSX below), driven by its
       // own scroll budget instead of arriving via normal document flow. Its
-      // window starts at 130vh — the same point the drone's own stage-2
-      // fade-out (P 0.65-0.75, i.e. 130vh-150vh) begins — so the two overlap
-      // and genuinely cross-dissolve instead of one finishing before the
-      // other starts. No DOM read needed (unlike the old entry guard this
+      // window starts at 230vh — the same point the drone's own stage-2
+      // fade-out (P 0.766667-0.833333, i.e. 230vh-250vh) begins — so the two
+      // overlap and genuinely cross-dissolve instead of one finishing before
+      // the other starts. No DOM read needed (unlike the old entry guard this
       // replaces): both fades are pure scroll-position math.
-      const ACH_START_VH = 1.3;
+      const ACH_START_VH = 2.3;
       const ACH_BUDGET_VH = 2.8; // fade-in (0.6vh) + hold (1.6vh, "a few scrolls") + fade-out (0.6vh)
       const achStartPx = ACH_START_VH * window.innerHeight;
       const achBudgetPx = ACH_BUDGET_VH * window.innerHeight;
@@ -468,11 +434,11 @@ export default function TubeLightLogo() {
       setAchievementsProgress(achP);
 
       // Sponsors pin/crossfade — same recipe as Achievements above. Its window
-      // starts at 350vh, exactly where Achievements' own fade-out begins
-      // (achStartPx + 0.786*achBudgetPx = 130vh + 220vh = 350vh), so the two
+      // starts at 450vh, exactly where Achievements' own fade-out begins
+      // (achStartPx + 0.786*achBudgetPx = 230vh + 220vh = 450vh), so the two
       // genuinely cross-dissolve instead of Sponsors merely sliding up via
       // normal scroll once Achievements has already gone fully transparent.
-      const SPONSORS_START_VH = 3.5;
+      const SPONSORS_START_VH = 4.5;
       const SPONSORS_BUDGET_VH = 2.0; // fade-in (0.214) + hold (0.572) + fade-out (0.214), same split as Achievements
       const sponsorsStartPx = SPONSORS_START_VH * window.innerHeight;
       const sponsorsBudgetPx = SPONSORS_BUDGET_VH * window.innerHeight;
@@ -564,10 +530,10 @@ export default function TubeLightLogo() {
 
   let aboutOpacity = 0;
   if (isMovedToNav) {
-    if (scrollProgress <= 0.12) {
+    if (scrollProgress <= 0.413333) {
       aboutOpacity = 1;
-    } else if (scrollProgress <= 0.18) {
-      aboutOpacity = (0.18 - scrollProgress) / 0.06;
+    } else if (scrollProgress <= 0.453333) {
+      aboutOpacity = (0.453333 - scrollProgress) / 0.04;
     } else {
       aboutOpacity = 0;
     }
@@ -647,8 +613,8 @@ export default function TubeLightLogo() {
 
   // ─── LOGO CENTER -> NAV SCRUB ─────────────────────────────────────────
   // The logo's move from the centered hero position to the small nav slot is
-  // tied directly to scroll distance — scrollProgress 0 -> 0.12, the same
-  // 24vh window the About box uses to fade in — instead of auto-playing on a
+  // tied directly to scroll distance — scrollProgress 0 -> 0.413333, the same
+  // 124vh window the About box uses to fade in — instead of auto-playing on a
   // fixed-duration CSS transition. maxLogoNavT only ever grows (see the rAF
   // loop above), so once the logo has reached — or partly reached — the nav
   // slot, scrolling back up doesn't pull it back toward center; it stays put.
@@ -704,17 +670,12 @@ export default function TubeLightLogo() {
           dotRadius={1.6}
           dotSpacing={16}
           bulgeStrength={70}
-          glowRadius={180}
           sparkle={true}
           waveAmplitude={0}
           gradientFrom="rgba(239, 68, 68, 0.35)"
           gradientTo="rgba(185, 28, 28, 0.15)"
-          glowColor="rgba(239, 68, 68, 0.25)"
         />
       </div>
-
-      {/* Background Radial Glow */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.14)_0%,transparent_65%)] pointer-events-none z-0" />
 
       {/* ── SCROLL ANCHORS ── */}
       {/* #about  → About Team Matrix section (visible 0–1.98vh, anchor at 100vh) */}
@@ -737,7 +698,7 @@ export default function TubeLightLogo() {
             <Link
               key={label}
               href={href}
-              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)] active:scale-95 whitespace-nowrap"
+              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
             >
               {label}
             </Link>
@@ -758,7 +719,7 @@ export default function TubeLightLogo() {
             <Link
               key={label}
               href={href}
-              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)] active:scale-95 whitespace-nowrap"
+              className="px-4 py-1.5 rounded-full text-sm font-sans font-medium text-slate-300/80 transition-all duration-200 hover:text-white hover:bg-white/[0.08] active:scale-95 whitespace-nowrap"
             >
               {label}
             </Link>
@@ -766,7 +727,7 @@ export default function TubeLightLogo() {
           <div className="w-px h-4 bg-white/10 mx-1" />
           <Link
             href="/apply"
-            className="px-4 py-1.5 rounded-full text-sm font-sans font-semibold text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_12px_rgba(239,68,68,0.25)] active:scale-95 whitespace-nowrap"
+            className="px-4 py-1.5 rounded-full text-sm font-sans font-semibold text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 active:scale-95 whitespace-nowrap"
           >
             Apply
           </Link>
@@ -872,7 +833,7 @@ export default function TubeLightLogo() {
             alt="Matrix Logo"
             width={500}
             height={500}
-            className="w-full h-auto object-contain drop-shadow-[0_0_18px_rgba(239,68,68,0.35)]"
+            className="w-full h-auto object-contain"
             priority
           />
         </div>
@@ -887,8 +848,8 @@ export default function TubeLightLogo() {
           <div className="w-[150px]">
             <StrokeText
               text="TEAM"
-              strokeColor="#EF4444"
-              fillColor="#EF4444"
+              strokeColor="#000000"
+              fillColor="#F8FAFC"
               strokeWidth={2}
               drawDuration={1.2}
               fillDelay={0.1}
@@ -904,8 +865,8 @@ export default function TubeLightLogo() {
           <div className="w-[210px] -mt-1">
             <StrokeText
               text="MATRIX"
-              strokeColor="#EF4444"
-              fillColor="#F8FAFC"
+              strokeColor="#000000"
+              fillColor="#EF4444"
               strokeWidth={1.6}
               drawDuration={1.5}
               fillDelay={0.15}
@@ -928,8 +889,8 @@ export default function TubeLightLogo() {
           <div className="w-[300px] md:w-[380px] lg:w-[460px]">
             <StrokeText
               text="TEAM"
-              strokeColor="#EF4444"
-              fillColor="#EF4444"
+              strokeColor="#000000"
+              fillColor="#F8FAFC"
               strokeWidth={2.6}
               drawDuration={1.4}
               fillDelay={0.1}
@@ -946,8 +907,8 @@ export default function TubeLightLogo() {
           <div className="w-[440px] md:w-[580px] lg:w-[680px] -mt-2 sm:-mt-4">
             <StrokeText
               text="MATRIX"
-              strokeColor="#EF4444"
-              fillColor="#F8FAFC"
+              strokeColor="#000000"
+              fillColor="#EF4444"
               strokeWidth={2.2}
               drawDuration={1.8}
               fillDelay={0.2}
@@ -1007,15 +968,9 @@ export default function TubeLightLogo() {
             {/* LEFT HALF: ABOUT TEAM MATRIX */}
             <div className="flex flex-col justify-between space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-b border-red-500/30 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)] flex-shrink-0" />
-                  <h2 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
-                    ABOUT TEAM MATRIX
-                  </h2>
-                </div>
-                <span className="text-[9px] sm:text-xs font-mono text-slate-400 tracking-tight sm:tracking-wider whitespace-nowrap">
-                  OFFICIAL ROBOTICS TEAM
-                </span>
+                <h2 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
+                  ABOUT TEAM MATRIX
+                </h2>
               </div>
               <p className="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-sans font-normal tracking-wide max-h-[45vh] lg:max-h-[360px] overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-red-500/40">
                 Team Matrix is the official robotics team at K.K. Wagh Institute of Engineering Education and Research, Nashik (An Autonomous Institute), affiliated with SPPU. Our team unites passionate students from diverse technical branches, including Mechanical, Electronics & Telecommunication, Robotics, and Computer Engineering. By fostering collaboration across disciplines, we develop innovative robotic solutions that highlight the strength of interdisciplinary engineering. Our journey is marked by numerous achievements, including participation in Techfest IIT Bombay 2024, Robotex National Championship 2024, IRoCU-2024 (ISRO Robotics Challenge, URSC Bengaluru), IRoCU-2025 and qualifying for Robotex International 2023 to represent India. We have also showcased our expertise at Robotex National Championship 2023, Robotex Maharashtra Zonal, BITS Goa QUARK, IIT Bombay Techfest, VJTI Roborace, LOGMIEER Roborace, GGSP Technical Fest Roborace, and Sapkal College Roborace.
@@ -1023,18 +978,15 @@ export default function TubeLightLogo() {
             </div>
 
             {/* CENTER NEON RED SEPARATING LINE */}
-            <div className="hidden lg:block w-[2px] h-[340px] bg-gradient-to-b from-red-500/0 via-red-500 to-red-500/0 shadow-[0_0_18px_rgba(239,68,68,0.9)] rounded-full my-auto" />
+            <div className="hidden lg:block w-[2px] h-[340px] bg-gradient-to-b from-red-500/0 via-red-500 to-red-500/0 rounded-full my-auto" />
 
             {/* RIGHT HALF: 16:9 VIDEO PLAYBACK */}
             <div className="flex flex-col justify-between space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-b border-red-500/30 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.9)] flex-shrink-0" />
-                  <h3 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
-                    <span className="sm:hidden">VIDEO STREAM</span>
-                    <span className="hidden sm:inline">TEAM MATRIX // VIDEO STREAM</span>
-                  </h3>
-                </div>
+                <h3 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
+                  <span className="sm:hidden">VIDEO STREAM</span>
+                  <span className="hidden sm:inline">TEAM MATRIX // VIDEO STREAM</span>
+                </h3>
                 <button
                   onClick={toggleMute}
                   className="text-[9px] sm:text-xs font-mono text-slate-300 hover:text-red-400 tracking-tight sm:tracking-wider flex items-center gap-1.5 bg-red-950/60 border border-red-500/40 px-2.5 sm:px-3 py-1 rounded-full transition-colors cursor-pointer whitespace-nowrap"
@@ -1059,7 +1011,7 @@ export default function TubeLightLogo() {
               </div>
 
               {/* 16:9 Aspect Ratio Video Container */}
-              <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-red-500/35 bg-black/90 group shadow-[0_0_35px_rgba(239,68,68,0.2)]">
+              <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-red-500/35 bg-black/90 group">
                 <video
                   ref={videoRef}
                   src="/tempfiles/about-video.mp4"
@@ -1077,7 +1029,7 @@ export default function TubeLightLogo() {
                     type="button"
                     className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px] transition-all hover:bg-slate-950/40 cursor-pointer group"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.85)] border border-red-400/80 transition-transform group-hover:scale-110">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-600/90 text-white flex items-center justify-center border border-red-400/80 transition-transform group-hover:scale-110">
                       <svg className="w-7 h-7 sm:w-8 sm:h-8 translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>
@@ -1133,7 +1085,7 @@ export default function TubeLightLogo() {
       {/* HERO SCROLL PROMPT — shown after logo reaches nav */}
       <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
         <div
-          className={`flex flex-col items-center gap-3 transition-all duration-700 ${!isMovedToNav || scrollProgress > 0.12 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
+          className={`flex flex-col items-center gap-3 transition-all duration-700 ${!isMovedToNav || scrollProgress > 0.413333 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
             }`}
         >
           <div className="px-4 py-1.5 rounded-full border border-red-500/25 bg-black/50 text-red-300/80 text-center whitespace-nowrap text-[9px] tracking-[0.08em] sm:text-xs sm:tracking-widest font-mono backdrop-blur-md animate-pulse">
@@ -1148,14 +1100,15 @@ export default function TubeLightLogo() {
 
       {isDesktopPin ? (
         <>
-          {/* Spacer reserves scroll distance for the whole drone -> Achievements -> Sponsors
-              sequence: 130vh of drone playback/hold, then the 280vh Achievements pin budget
+          {/* Spacer reserves scroll distance for the whole About-hold -> drone -> Achievements
+              -> Sponsors sequence: 230vh before Achievements starts (124vh of About hold +
+              drone fade-in/play/hold/fade-out), then the 280vh Achievements pin budget
               (ACH_START_VH + ACH_BUDGET_VH above), then the 200vh Sponsors pin budget
-              (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 350vh so it overlaps
+              (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 450vh so it overlaps
               Achievements' own fade-out) during which Sponsors is fixed on screen, ending at
-              550vh where the Apply CTA + Footer sit waiting in normal flow. Desktop only —
+              650vh where the Apply CTA + Footer sit waiting in normal flow. Desktop only —
               see `isDesktopPin` above for why mobile skips this whole pin/crossfade. */}
-          <div style={{ height: "550vh" }} aria-hidden="true" />
+          <div style={{ height: "650vh" }} aria-hidden="true" />
 
           {/* ACHIEVEMENTS SHOWCASE — pinned full-screen like the drone canvas, its opacity
               driven by achievementsOpacity so it cross-dissolves with the drone on the way
@@ -1165,7 +1118,28 @@ export default function TubeLightLogo() {
             style={{
               opacity: achievementsOpacity,
               filter: crossfadeBlur(achievementsOpacity),
-              pointerEvents: achievementsOpacity > 0.05 ? "auto" : "none",
+              // Auto only during fade-in/hold, never during the fade-out
+              // tail — this `fixed inset-0` layer covers the full viewport,
+              // so leaving pointer-events "auto" through its whole dissolve
+              // blocked clicks on whatever crossfades in underneath (first
+              // Sponsors, eventually the Apply CTA).
+              pointerEvents: achievementsOpacity > 0.05 && achievementsProgress < 0.786 ? "auto" : "none",
+              // `visibility: hidden` once fully faded — belt-and-braces on
+              // top of the pointer-events gating above. DepthCarousel (used
+              // inside AchievementsShowcase) sets its own inline
+              // `pointer-events: auto` on whichever cards are "shown" in its
+              // local stack, entirely unaware of this wrapper's crossfade
+              // state — that explicit per-card override wins over an
+              // ancestor's pointer-events: none (inheritance only applies
+              // when the descendant doesn't set its own value), so a card
+              // could stay clickable, sitting at z-index ~2000, long after
+              // this whole section was supposed to be gone. This was the
+              // actual reason clicks on the Apply CTA (and everywhere else
+              // behind it) kept landing on an invisible carousel slide
+              // instead. `visibility: hidden` is the one property that
+              // reliably removes a subtree from hit-testing regardless of
+              // what a descendant sets on itself.
+              visibility: achievementsOpacity > 0.001 ? "visible" : "hidden",
             }}
           >
             <AchievementsShowcase />
@@ -1179,7 +1153,18 @@ export default function TubeLightLogo() {
             style={{
               opacity: sponsorsOpacity,
               filter: crossfadeBlur(sponsorsOpacity),
-              pointerEvents: sponsorsOpacity > 0.05 ? "auto" : "none",
+              // Same fix as Achievements above — this is what left the Apply
+              // CTA button unclickable: the Apply CTA is already visible in
+              // normal flow underneath for most of this section's fade-out
+              // (its 42.8vh fade-out window is shorter than the ~1 viewport
+              // of scroll the CTA needs to scroll fully into view), so this
+              // full-viewport layer intercepted every click meant for it
+              // until it dropped nearly all the way to opacity 0.
+              pointerEvents: sponsorsOpacity > 0.05 && sponsorsProgress < 0.786 ? "auto" : "none",
+              // See the visibility comment on the Achievements layer above —
+              // same belt-and-braces guard in case any current or future
+              // child here ever sets its own explicit pointer-events: auto.
+              visibility: sponsorsOpacity > 0.001 ? "visible" : "hidden",
             }}
           >
             <SponsorsSection />
@@ -1187,11 +1172,11 @@ export default function TubeLightLogo() {
         </>
       ) : (
         <>
-          {/* Mobile: a much smaller spacer just covers the drone's own 200vh
+          {/* Mobile: a much smaller spacer just covers the drone's own 300vh
               pin budget (see DRONE_VH above) — no reserved space is needed
               for Achievements/Sponsors since they're normal-flow below, not
               pinned. */}
-          <div style={{ height: "200vh" }} aria-hidden="true" />
+          <div style={{ height: "300vh" }} aria-hidden="true" />
 
           <div className="relative z-10 w-full" style={{ scrollSnapAlign: "center" }}>
             <AchievementsShowcase variant="flow" />
@@ -1228,7 +1213,7 @@ export default function TubeLightLogo() {
 
             <Reveal delayMs={80}>
               <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight">
-                Ready to Build <span className="text-red-500 drop-shadow-[0_0_24px_rgba(239,68,68,0.5)]">With Us?</span>
+                Ready to Build <span className="text-red-500">With Us?</span>
               </h2>
             </Reveal>
 
@@ -1241,20 +1226,18 @@ export default function TubeLightLogo() {
             <Reveal delayMs={240}>
               <Link
                 ref={applyBtnRef}
-                href="/apply"
+                href="https://google.com" // TEMP: was "/apply" — revert once done testing
                 onMouseMove={handleApplyMouseMove}
                 onMouseLeave={handleApplyMouseLeave}
                 className="
                   relative group mt-1
                   inline-block
                   px-10 py-3 rounded-full
-                  bg-red-600/90 text-white
+                  bg-[#8c1c2b]/90 text-white
                   font-[family-name:var(--font-black-ops)] text-base sm:text-lg tracking-[0.1em]
-                  border border-red-400/60
-                  transition-[background-color,box-shadow,transform] duration-200 ease-out
-                  hover:bg-red-500
-                  shadow-[0_0_30px_rgba(239,68,68,0.35),0_0_60px_rgba(239,68,68,0.15)]
-                  hover:shadow-[0_0_40px_rgba(239,68,68,0.55),0_0_80px_rgba(239,68,68,0.25)]
+                  border border-[#c1495a]/60
+                  transition-[background-color,transform] duration-200 ease-out
+                  hover:bg-[#a3283b]
                   overflow-hidden
                 "
               >

@@ -10,13 +10,11 @@ export default function ApplyPage() {
       {/* Background dot field */}
       <div className="fixed inset-0 z-0">
         <DotField
-          dotRadius={1.6} dotSpacing={16} bulgeStrength={70} glowRadius={180}
+          dotRadius={1.6} dotSpacing={16} bulgeStrength={70}
           sparkle={true} waveAmplitude={0}
           gradientFrom="rgba(239, 68, 68, 0.25)" gradientTo="rgba(185, 28, 28, 0.10)"
-          glowColor="rgba(239, 68, 68, 0.18)"
         />
       </div>
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.10)_0%,transparent_65%)] pointer-events-none z-0" />
 
       <NavBar />
 

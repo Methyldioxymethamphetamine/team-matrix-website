@@ -36,10 +36,7 @@ export default function ScrollProgressBar() {
       <div
         ref={barRef}
         className="h-full origin-left bg-gradient-to-r from-red-600 via-red-400 to-red-600"
-        style={{
-          transform: "scaleX(0)",
-          boxShadow: "0 0 12px rgba(239,68,68,0.7), 0 0 4px rgba(239,68,68,0.9)",
-        }}
+        style={{ transform: "scaleX(0)" }}
       />
     </div>
   );

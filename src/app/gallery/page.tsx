@@ -69,26 +69,15 @@ export default function GalleryPage() {
       {/* Background */}
       <div className="fixed inset-0 z-0">
         <DotField
-          dotRadius={1.6} dotSpacing={16} bulgeStrength={70} glowRadius={180}
+          dotRadius={1.6} dotSpacing={16} bulgeStrength={70}
           sparkle={true} waveAmplitude={0}
           gradientFrom="rgba(239, 68, 68, 0.25)" gradientTo="rgba(185, 28, 28, 0.10)"
-          glowColor="rgba(239, 68, 68, 0.18)"
         />
       </div>
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.10)_0%,transparent_65%)] pointer-events-none z-0" />
 
       <NavBar />
 
       <main className="relative z-10 pt-28 pb-24 px-6 sm:px-8 max-w-[1400px] mx-auto">
-        {/* Ambient glow */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute top-0 left-0 right-0 h-[40vh]"
-          style={{
-            background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(239,68,68,0.10) 0%, transparent 70%)",
-          }}
-        />
-
         {/* Section header */}
         <div
           className="mb-14 flex flex-col gap-3 transition-all duration-700"
@@ -97,7 +86,7 @@ export default function GalleryPage() {
           <div className="flex items-center gap-3">
             <span
               className="inline-block w-10 h-[2px] rounded-full"
-              style={{ background: "#ef4444", boxShadow: "0 0 8px rgba(239,68,68,0.7)" }}
+              style={{ background: "#ef4444" }}
             />
             <span className="font-mono text-[0.55rem] tracking-[0.1em] sm:text-[0.7rem] sm:tracking-[0.28em] uppercase font-semibold text-red-400/85 whitespace-nowrap">
               TEAM MATRIX / STORIES

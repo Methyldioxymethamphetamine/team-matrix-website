@@ -10,15 +10,6 @@ import { memo } from "react";
 function Footer() {
   return (
     <footer className="relative z-30 w-full bg-[#08080c] border-t border-red-500/20 text-slate-200 overflow-hidden">
-      {/* Background ambient radial glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 40% at 50% 100%, rgba(239, 68, 68, 0.12) 0%, transparent 70%)",
-        }}
-      />
-
       <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 pt-6 sm:pt-8 pb-20 sm:pb-24">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 lg:gap-8 items-start">
 
@@ -30,7 +21,7 @@ function Footer() {
                 alt="Team Matrix Logo"
                 fill
                 sizes="(max-width: 640px) 64px, 80px"
-                className="object-contain drop-shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+                className="object-contain"
               />
             </div>
 

@@ -83,7 +83,7 @@ export default function NavBar() {
               className={`px-4 py-1.5 rounded-full text-sm font-sans font-medium transition-all duration-200 active:scale-95 whitespace-nowrap ${
                 pathname === href
                   ? "text-white bg-white/[0.10]"
-                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)]"
+                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08]"
               }`}
             >
               {label}
@@ -116,7 +116,7 @@ export default function NavBar() {
               className={`px-4 py-1.5 rounded-full text-sm font-sans font-medium transition-all duration-200 active:scale-95 whitespace-nowrap ${
                 pathname === href
                   ? "text-white bg-white/[0.10]"
-                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08] hover:shadow-[0_0_16px_rgba(239,68,68,0.18)]"
+                  : "text-slate-300/80 hover:text-white hover:bg-white/[0.08]"
               }`}
             >
               {label}

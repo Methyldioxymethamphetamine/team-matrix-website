@@ -17,17 +17,12 @@ export default function NotFound() {
           dotRadius={1.6}
           dotSpacing={16}
           bulgeStrength={70}
-          glowRadius={180}
           sparkle={true}
           waveAmplitude={0}
           gradientFrom="rgba(239, 68, 68, 0.35)"
           gradientTo="rgba(185, 28, 28, 0.15)"
-          glowColor="rgba(239, 68, 68, 0.25)"
         />
       </div>
-
-      {/* Background Radial Glow */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.18)_0%,transparent_70%)] pointer-events-none z-0" />
 
       {/* TOP BAR: Logo Badge Island (left) + Pill Nav Island (center-right) */}
       <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 sm:px-6 pt-4">
@@ -39,14 +34,14 @@ export default function NotFound() {
               alt="Team Matrix Logo"
               width={80}
               height={80}
-              className="w-full h-auto object-contain filter drop-shadow-[0_0_12px_rgba(239,68,68,0.6)] transition-transform group-hover:scale-110"
+              className="w-full h-auto object-contain transition-transform group-hover:scale-110"
             />
           </div>
           <div className="flex items-center gap-2">
             <span className="font-[family-name:var(--font-black-ops)] font-normal text-red-500 text-xs sm:text-sm tracking-[0.2em]">
               TEAM
             </span>
-            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-sm sm:text-base tracking-[0.08em] drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]">
+            <span className="font-[family-name:var(--font-black-ops)] font-normal text-slate-100 text-sm sm:text-base tracking-[0.08em]">
               MATRIX
             </span>
           </div>
@@ -61,7 +56,7 @@ export default function NotFound() {
           <div className="hidden sm:block w-px h-4 bg-white/10 mx-1" />
           <Link
             href="/"
-            className="px-4 py-1.5 rounded-full text-sm font-[family-name:var(--font-black-ops)] tracking-[0.06em] text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 hover:shadow-[0_0_18px_rgba(239,68,68,0.3)] active:scale-95"
+            className="px-4 py-1.5 rounded-full text-sm font-[family-name:var(--font-black-ops)] tracking-[0.06em] text-red-300 bg-red-950/50 border border-red-500/30 transition-all duration-200 hover:bg-red-900/60 hover:text-red-200 active:scale-95"
           >
             Return
           </Link>
@@ -72,18 +67,16 @@ export default function NotFound() {
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 pt-20 pb-12">
         <div className="flex flex-col items-center justify-center space-y-4">
           {/* FUZZY TEXT 404 */}
-          <div className="drop-shadow-[0_0_50px_rgba(239,68,68,0.6)]">
-            <FuzzyText
-              baseIntensity={0.2}
-              hoverIntensity={hoverIntensity}
-              enableHover={enableHover}
-            >
-              404
-            </FuzzyText>
-          </div>
+          <FuzzyText
+            baseIntensity={0.2}
+            hoverIntensity={hoverIntensity}
+            enableHover={enableHover}
+          >
+            404
+          </FuzzyText>
 
           <div className="space-y-3 max-w-lg mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/60 border border-red-500/40 text-red-400 font-mono text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/60 border border-red-500/40 text-red-400 font-mono text-xs tracking-widest uppercase animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
               TELEMETRY PATH NOT FOUND
             </div>
@@ -98,7 +91,7 @@ export default function NotFound() {
           <div className="pt-4">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-red-600/90 text-white font-mono text-xs sm:text-sm tracking-widest uppercase font-semibold transition-all hover:bg-red-500 hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(239,68,68,0.7)] border border-red-400"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-red-600/90 text-white font-mono text-xs sm:text-sm tracking-widest uppercase font-semibold transition-all hover:bg-red-500 hover:scale-105 active:scale-95 border border-red-400"
             >
               <svg className="w-4 h-4 -translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

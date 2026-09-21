@@ -8,10 +8,9 @@ interface MembersSectionProps {
   visible: boolean;
 }
 
-// Red-themed gradient + glow to match Team Matrix aesthetic
+// Red-themed gradient to match Team Matrix aesthetic
 const CARD_GRADIENT =
   "linear-gradient(145deg, rgba(239,68,68,0.18) 0%, rgba(10,10,15,0.96) 100%)";
-const CARD_GLOW = "rgba(239, 68, 68, 0.5)";
 
 export default function MembersSection({ visible }: MembersSectionProps) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -43,18 +42,6 @@ export default function MembersSection({ visible }: MembersSectionProps) {
         transition: "opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
       }}
     >
-      {/* Ambient red glow backdrop */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(239,68,68,0.10) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
       <div
         style={{
           position: "relative",
@@ -86,7 +73,6 @@ export default function MembersSection({ visible }: MembersSectionProps) {
                 width: "2.5rem",
                 height: "2px",
                 background: "#ef4444",
-                boxShadow: "0 0 10px rgba(239,68,68,0.9)",
                 borderRadius: "9999px",
               }}
             />
@@ -114,7 +100,6 @@ export default function MembersSection({ visible }: MembersSectionProps) {
               lineHeight: 1.05,
               letterSpacing: "-0.02em",
               margin: 0,
-              textShadow: "0 0 40px rgba(239,68,68,0.3)",
             }}
           >
             Meet the Team
@@ -155,8 +140,6 @@ export default function MembersSection({ visible }: MembersSectionProps) {
               showUserInfo={true}
               enableTilt={true}
               enableMobileTilt={false}
-              behindGlowEnabled={true}
-              behindGlowColor={CARD_GLOW}
               innerGradient={CARD_GRADIENT}
             />
           ))}

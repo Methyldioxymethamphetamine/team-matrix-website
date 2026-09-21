@@ -11,8 +11,6 @@
   --rotate-y: 0deg;
   --background-x: 50%;
   --background-y: 50%;
-  --behind-glow-color: rgba(239, 68, 68, 0.6);
-  --behind-glow-size: 45%;
   --inner-gradient: linear-gradient(145deg, rgba(239,68,68,0.18) 0%, rgba(10,10,15,0.96) 100%);
   --card-radius: 24px;
 }
@@ -23,22 +21,6 @@
   transform: translate3d(0, 0, 0.1px);
   position: relative;
   touch-action: none;
-}
-
-/* ─── Behind glow ─────────────────────────────────────────────────────────── */
-.pc-behind {
-  position: absolute;
-  inset: -20px;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at var(--pointer-x) var(--pointer-y),
-    var(--behind-glow-color) 0%,
-    transparent var(--behind-glow-size)
-  );
-  filter: blur(40px) saturate(1.2);
-  opacity: calc(var(--card-opacity));
-  transition: opacity 300ms ease;
 }
 
 .pc-card-wrapper:hover,
@@ -310,12 +292,6 @@
   border-color: rgba(239,68,68,0.5);
   color: #fff;
   transform: translateY(-1px);
-}
-
-/* ─── Animations ──────────────────────────────────────────────────────────── */
-@keyframes glow-bg {
-  0%   { --bgrotate: 0deg; }
-  100% { --bgrotate: 360deg; }
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
