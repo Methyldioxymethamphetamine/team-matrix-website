@@ -14,6 +14,15 @@ import AchievementsShowcase from "./AchievementsShowcase";
 import ScrollProgressBar from "./ScrollProgressBar";
 import ScrollLineSidebar from "./ScrollLineSidebar";
 import Reveal from "./Reveal";
+import { ALUMNI } from "@/data/alumni";
+import achievementCaptionsData from "../../public/achievements/captions.json";
+
+interface AchievementCaption {
+  file: string;
+  caption: string;
+  note?: string;
+}
+const achievementCaptions = achievementCaptionsData as AchievementCaption[];
 
 const DRONE_1_COUNT = 60;
 
@@ -189,18 +198,33 @@ export default function TubeLightLogo() {
     }
   }, []);
 
-  // Preload transparent RGBA WebP frames for drone sequence + about-video.mp4
+  // Preload transparent RGBA WebP frames for drone sequence + about-video.mp4,
+  // plus every member/sponsor/alumni/achievement photo shown further down the
+  // page — the loading bar isn't allowed to hit 100% (and the page doesn't
+  // unlock) until all of it is actually cached, not just the intro sequence,
+  // so those sections never show a broken/half-loaded image on first paint.
+  // `totalCount` starts unknown (members/sponsors come from an API call) —
+  // `tryFinish` is a no-op until it's set, but `loadedCount` still accrues in
+  // the meantime, so drone frames that finish loading before the member/
+  // sponsor fetch resolves aren't lost, just not reflected in the percentage
+  // yet.
   useEffect(() => {
+    let cancelled = false;
     let loadedCount = 0;
-    const totalCount = DRONE_1_COUNT + 1; // 60 frames + 1 video
+    let totalCount: number | null = null;
 
-    const incrementLoad = () => {
-      loadedCount++;
+    const tryFinish = () => {
+      if (totalCount === null) return;
       const pct = Math.min(100, Math.round((loadedCount / totalCount) * 100));
       setLoadProgress(pct);
       if (loadedCount >= totalCount) {
         setIsAssetsLoaded(true);
       }
+    };
+
+    const incrementLoad = () => {
+      loadedCount++;
+      tryFinish();
     };
 
     // 1) Sequence 1: drone.webm (60 frames) — a half-resolution (960x540)
@@ -230,12 +254,49 @@ export default function TubeLightLogo() {
     videoObj.onerror = incrementLoad;
     videoObj.load();
 
+    // 3) Members, sponsors, alumni, and achievements photos. Members/sponsors
+    // are fs/JSON-backed and only knowable via their API routes; alumni and
+    // achievements are static data already bundled client-side.
+    const achievementUrls = achievementCaptions.map((c) => `/achievements/${c.file}`);
+    const alumniUrls = ALUMNI.map((a) => a.avatarUrl);
+
+    Promise.all([
+      fetch("/api/members").then((r) => r.json()).catch(() => []),
+      fetch("/api/sponsors").then((r) => r.json()).catch(() => []),
+    ]).then(([members, sponsors]) => {
+      if (cancelled) return;
+      const memberUrls = (members as { avatarUrl?: string }[])
+        .map((m) => m.avatarUrl)
+        .filter((u): u is string => Boolean(u));
+      const sponsorUrls = (sponsors as { src?: string }[])
+        .map((s) => s.src)
+        .filter((u): u is string => Boolean(u));
+
+      const extraUrls = [...memberUrls, ...sponsorUrls, ...alumniUrls, ...achievementUrls];
+      totalCount = DRONE_1_COUNT + 1 + extraUrls.length;
+
+      extraUrls.forEach((src) => {
+        const img = new window.Image();
+        img.onload = incrementLoad;
+        img.onerror = incrementLoad;
+        img.src = src;
+      });
+
+      tryFinish(); // reflects however many of the above already finished while we were fetching
+    });
+
+    // Generous fallback — this now waits on a lot more than the intro
+    // sequence, so a slow connection gets more runway before we give up and
+    // let the user in anyway rather than stranding them on the loading screen.
     const fallbackTimer = setTimeout(() => {
       setIsAssetsLoaded(true);
       setLoadProgress(100);
-    }, 12000);
+    }, 20000);
 
-    return () => clearTimeout(fallbackTimer);
+    return () => {
+      cancelled = true;
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   // Synchronize: after intro + assets + 3s intentional delay → set readyForScroll
@@ -367,50 +428,50 @@ export default function TubeLightLogo() {
       lastInnerHeight = window.innerHeight;
 
       // ─── DRONE SCROLL BUDGET (decoupled from total page height) ───────────────
-      // P is computed against a 300vh budget: the original 200vh drone timeline
+      // P is computed against a 400vh budget: the original 200vh drone timeline
       // (fade-in/play/hold/fade-out, unchanged in duration and relative pacing)
-      // plus one extra viewport-height (100vh) of pure hold added to the very
-      // front, so the About section stays on screen for one full extra scroll
+      // plus two extra viewport-heights (200vh) of pure hold added to the very
+      // front, so the About section stays on screen for two full extra scrolls
       // before anything starts transitioning to the drone. Every stage below
-      // is simply the old 200vh schedule shifted 100vh later.
-      const DRONE_VH = 3.0; // 300vh expressed as viewport-height multiples
+      // is simply the old 200vh schedule shifted 200vh later.
+      const DRONE_VH = 4.0; // 400vh expressed as viewport-height multiples
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
-      const rawLogoNavT = Math.min(1, Math.max(0, P / 0.413333));
+      const rawLogoNavT = Math.min(1, Math.max(0, P / 0.56));
       setMaxLogoNavT((prev) => (rawLogoNavT > prev ? rawLogoNavT : prev));
 
       // ─── OUR STORIES VISIBILITY ────────────────────────────────────────
-      // Visible once drone animation wraps up (P >= 0.966667, i.e. 290vh)
-      setWorksRawVisible(P >= 0.966667);
+      // Visible once drone animation wraps up (P >= 0.975, i.e. 390vh)
+      setWorksRawVisible(P >= 0.975);
 
       let localProgress = 0;
       let opacity = 0;
 
       // Sequence Stage 1: drone.webm (0.00 -> 1.00)
-      // Stage 0 (0.00 -> 0.413333, i.e. 0-124vh): About Section held on screen; drone canvas hidden (opacity = 0)
-      // Stage 0.5 (0.413333 -> 0.453333, i.e. 124-136vh): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
-      // Stage 1 (0.453333 -> 0.7, i.e. 136-210vh): drone.webm scroll animation plays (0% to 100% of seq1Images)
-      // Stage 1.5 (0.7 -> 0.766667, i.e. 210-230vh): Hold drone.webm last frame static
-      // Stage 2 (0.766667 -> 0.833333, i.e. 230-250vh): Fade out drone canvas smoothly — finishes one full
+      // Stage 0 (0.00 -> 0.56, i.e. 0-224vh): About Section held on screen; drone canvas hidden (opacity = 0)
+      // Stage 0.5 (0.56 -> 0.59, i.e. 224-236vh): About Section fades out; drone canvas fades in (opacity 0 -> 1), frame 0 static
+      // Stage 1 (0.59 -> 0.775, i.e. 236-310vh): drone.webm scroll animation plays (0% to 100% of seq1Images)
+      // Stage 1.5 (0.775 -> 0.825, i.e. 310-330vh): Hold drone.webm last frame static
+      // Stage 2 (0.825 -> 0.875, i.e. 330-350vh): Fade out drone canvas smoothly — finishes one full
       //   viewport-height of scroll before Achievements' top can reach the bottom edge.
-      // Stage 3 (0.833333 -> 1.00, i.e. 250-300vh): Fully hidden — nothing left to draw, canvas is inert.
-      if (P < 0.413333) {
+      // Stage 3 (0.875 -> 1.00, i.e. 350-400vh): Fully hidden — nothing left to draw, canvas is inert.
+      if (P < 0.56) {
         opacity = 0; // Completely hidden while About Team Matrix box takes over screen
         localProgress = 0;
-      } else if (P < 0.453333) {
-        opacity = (P - 0.413333) / 0.04; // Smooth fade in of drone canvas as About box fades out
+      } else if (P < 0.59) {
+        opacity = (P - 0.56) / 0.03; // Smooth fade in of drone canvas as About box fades out
         localProgress = 0;
-      } else if (P < 0.7) {
+      } else if (P < 0.775) {
         opacity = 1;
-        localProgress = (P - 0.453333) / 0.246667; // Plays 100% of drone.webm
-      } else if (P < 0.766667) {
+        localProgress = (P - 0.59) / 0.185; // Plays 100% of drone.webm
+      } else if (P < 0.825) {
         // Hold last frame static
         opacity = 1;
         localProgress = 1;
-      } else if (P < 0.833333) {
+      } else if (P < 0.875) {
         // Fade out drone canvas smoothly
-        opacity = Math.max(0, 1 - (P - 0.766667) / 0.066667);
+        opacity = Math.max(0, 1 - (P - 0.825) / 0.05);
         localProgress = 1;
       } else {
         opacity = 0;
@@ -421,12 +482,12 @@ export default function TubeLightLogo() {
       // ─── ACHIEVEMENTS PIN + CROSSFADE ───────────────────────────────────
       // Achievements is `position: fixed` too (see JSX below), driven by its
       // own scroll budget instead of arriving via normal document flow. Its
-      // window starts at 230vh — the same point the drone's own stage-2
-      // fade-out (P 0.766667-0.833333, i.e. 230vh-250vh) begins — so the two
+      // window starts at 330vh — the same point the drone's own stage-2
+      // fade-out (P 0.825-0.875, i.e. 330vh-350vh) begins — so the two
       // overlap and genuinely cross-dissolve instead of one finishing before
       // the other starts. No DOM read needed (unlike the old entry guard this
       // replaces): both fades are pure scroll-position math.
-      const ACH_START_VH = 2.3;
+      const ACH_START_VH = 3.3;
       const ACH_BUDGET_VH = 2.8; // fade-in (0.6vh) + hold (1.6vh, "a few scrolls") + fade-out (0.6vh)
       const achStartPx = ACH_START_VH * window.innerHeight;
       const achBudgetPx = ACH_BUDGET_VH * window.innerHeight;
@@ -434,11 +495,11 @@ export default function TubeLightLogo() {
       setAchievementsProgress(achP);
 
       // Sponsors pin/crossfade — same recipe as Achievements above. Its window
-      // starts at 450vh, exactly where Achievements' own fade-out begins
-      // (achStartPx + 0.786*achBudgetPx = 230vh + 220vh = 450vh), so the two
+      // starts at 550vh, exactly where Achievements' own fade-out begins
+      // (achStartPx + 0.786*achBudgetPx = 330vh + 220vh = 550vh), so the two
       // genuinely cross-dissolve instead of Sponsors merely sliding up via
       // normal scroll once Achievements has already gone fully transparent.
-      const SPONSORS_START_VH = 4.5;
+      const SPONSORS_START_VH = 5.5;
       const SPONSORS_BUDGET_VH = 2.0; // fade-in (0.214) + hold (0.572) + fade-out (0.214), same split as Achievements
       const sponsorsStartPx = SPONSORS_START_VH * window.innerHeight;
       const sponsorsBudgetPx = SPONSORS_BUDGET_VH * window.innerHeight;
@@ -530,10 +591,10 @@ export default function TubeLightLogo() {
 
   let aboutOpacity = 0;
   if (isMovedToNav) {
-    if (scrollProgress <= 0.413333) {
+    if (scrollProgress <= 0.56) {
       aboutOpacity = 1;
-    } else if (scrollProgress <= 0.453333) {
-      aboutOpacity = (0.453333 - scrollProgress) / 0.04;
+    } else if (scrollProgress <= 0.59) {
+      aboutOpacity = (0.59 - scrollProgress) / 0.03;
     } else {
       aboutOpacity = 0;
     }
@@ -613,8 +674,8 @@ export default function TubeLightLogo() {
 
   // ─── LOGO CENTER -> NAV SCRUB ─────────────────────────────────────────
   // The logo's move from the centered hero position to the small nav slot is
-  // tied directly to scroll distance — scrollProgress 0 -> 0.413333, the same
-  // 124vh window the About box uses to fade in — instead of auto-playing on a
+  // tied directly to scroll distance — scrollProgress 0 -> 0.56, the same
+  // 224vh window the About box uses to fade in — instead of auto-playing on a
   // fixed-duration CSS transition. maxLogoNavT only ever grows (see the rAF
   // loop above), so once the logo has reached — or partly reached — the nav
   // slot, scrolling back up doesn't pull it back toward center; it stays put.
@@ -930,7 +991,7 @@ export default function TubeLightLogo() {
           >
             {/* Loading progress — fades once assets ready */}
             <div className={`flex flex-col items-center gap-3 transition-opacity duration-700 ${readyForScroll ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-              <div className="text-center font-mono text-xs sm:text-sm tracking-[0.4em] text-red-500 font-bold uppercase animate-pulse">
+              <div className="thought-line-shimmer text-center font-mono text-xs sm:text-sm tracking-[0.4em] text-red-500 font-bold uppercase">
                 loading {Math.round(loadProgress)}%
               </div>
               {/* Material You Capsule Loading Bar */}
@@ -1085,7 +1146,7 @@ export default function TubeLightLogo() {
       {/* HERO SCROLL PROMPT — shown after logo reaches nav */}
       <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-[200] pointer-events-none">
         <div
-          className={`flex flex-col items-center gap-3 transition-all duration-700 ${!isMovedToNav || scrollProgress > 0.413333 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
+          className={`flex flex-col items-center gap-3 transition-all duration-700 ${!isMovedToNav || scrollProgress > 0.56 ? "opacity-0 translate-y-6" : "opacity-100 translate-y-0"
             }`}
         >
           <div className="px-4 py-1.5 rounded-full border border-red-500/25 bg-black/50 text-red-300/80 text-center whitespace-nowrap text-[9px] tracking-[0.08em] sm:text-xs sm:tracking-widest font-mono backdrop-blur-md animate-pulse">
@@ -1101,14 +1162,14 @@ export default function TubeLightLogo() {
       {isDesktopPin ? (
         <>
           {/* Spacer reserves scroll distance for the whole About-hold -> drone -> Achievements
-              -> Sponsors sequence: 230vh before Achievements starts (124vh of About hold +
+              -> Sponsors sequence: 330vh before Achievements starts (224vh of About hold +
               drone fade-in/play/hold/fade-out), then the 280vh Achievements pin budget
               (ACH_START_VH + ACH_BUDGET_VH above), then the 200vh Sponsors pin budget
-              (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 450vh so it overlaps
+              (SPONSORS_START_VH + SPONSORS_BUDGET_VH above, starting at 550vh so it overlaps
               Achievements' own fade-out) during which Sponsors is fixed on screen, ending at
-              650vh where the Apply CTA + Footer sit waiting in normal flow. Desktop only —
+              750vh where the Apply CTA + Footer sit waiting in normal flow. Desktop only —
               see `isDesktopPin` above for why mobile skips this whole pin/crossfade. */}
-          <div style={{ height: "650vh" }} aria-hidden="true" />
+          <div style={{ height: "750vh" }} aria-hidden="true" />
 
           {/* ACHIEVEMENTS SHOWCASE — pinned full-screen like the drone canvas, its opacity
               driven by achievementsOpacity so it cross-dissolves with the drone on the way
@@ -1172,11 +1233,11 @@ export default function TubeLightLogo() {
         </>
       ) : (
         <>
-          {/* Mobile: a much smaller spacer just covers the drone's own 300vh
+          {/* Mobile: a much smaller spacer just covers the drone's own 400vh
               pin budget (see DRONE_VH above) — no reserved space is needed
               for Achievements/Sponsors since they're normal-flow below, not
               pinned. */}
-          <div style={{ height: "300vh" }} aria-hidden="true" />
+          <div style={{ height: "400vh" }} aria-hidden="true" />
 
           <div className="relative z-10 w-full" style={{ scrollSnapAlign: "center" }}>
             <AchievementsShowcase variant="flow" />

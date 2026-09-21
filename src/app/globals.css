@@ -38,3 +38,40 @@ body {
   }
 }
 
+/* Shimmer-text effect adapted from reactbits.dev/micro/thought-line — a
+   lighter band of `currentColor` sweeping across the text, achieved by
+   animating a background-clipped gradient's position instead of any JS
+   per-frame work. Used on the "loading X%" label in TubeLightLogo's intro. */
+@keyframes thought-line-shimmer {
+  to {
+    background-position: -125% 0;
+  }
+}
+
+.thought-line-shimmer {
+  /* currentColor picks up whatever `color` utility (e.g. text-red-500) is
+     already on the element — only -webkit-text-fill-color is overridden
+     below, so that color itself is untouched and nothing needs restoring
+     for the reduced-motion fallback. */
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, currentColor 50%, transparent) 30%,
+    currentColor 50%,
+    color-mix(in srgb, currentColor 50%, transparent) 70%
+  );
+  background-size: 250% 100%;
+  background-position: 125% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: thought-line-shimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thought-line-shimmer {
+    animation: none;
+    background-image: none;
+    -webkit-text-fill-color: unset;
+  }
+}
+
