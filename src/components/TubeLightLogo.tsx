@@ -156,7 +156,6 @@ export default function TubeLightLogo() {
   // Video state & refs for About section video
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -165,14 +164,6 @@ export default function TubeLightLogo() {
       } else {
         videoRef.current.play().catch(() => { });
       }
-    }
-  };
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      const nextMuted = !videoRef.current.muted;
-      videoRef.current.muted = nextMuted;
-      setIsMuted(nextMuted);
     }
   };
 
@@ -438,7 +429,20 @@ export default function TubeLightLogo() {
       const droneMaxPx = DRONE_VH * window.innerHeight;
       const P = Math.min(1, Math.max(0, scrollY / droneMaxPx));
       setScrollProgress(P);
-      const rawLogoNavT = Math.min(1, Math.max(0, P / 0.56));
+      // Logo center -> nav dock glide: its own short, fixed-vh window,
+      // deliberately NOT a fraction of P/DRONE_VH. It used to be (still
+      // reads that way below in a couple of comments this doesn't touch),
+      // but as the About-hold budget above grew across a couple of "stay on
+      // About one more scroll" requests, DRONE_VH grew with it and this being
+      // P-relative meant the dock glide silently grew right along with it —
+      // up to 224vh of scroll to finish, i.e. the logo visibly crawling
+      // toward the nav slot for over two screens' worth of scrolling before
+      // settling, most noticeable on mobile where that's many swipes. 15vh
+      // is quick enough to read as near-instant on both mobile and desktop
+      // while keeping the glide (rather than an abrupt teleport), and no
+      // longer moves if the About-hold duration changes again.
+      const LOGO_NAV_VH = 0.15;
+      const rawLogoNavT = Math.min(1, Math.max(0, scrollY / (LOGO_NAV_VH * window.innerHeight)));
       setMaxLogoNavT((prev) => (rawLogoNavT > prev ? rawLogoNavT : prev));
 
       // ─── OUR STORIES VISIBILITY ────────────────────────────────────────
@@ -674,11 +678,11 @@ export default function TubeLightLogo() {
 
   // ─── LOGO CENTER -> NAV SCRUB ─────────────────────────────────────────
   // The logo's move from the centered hero position to the small nav slot is
-  // tied directly to scroll distance — scrollProgress 0 -> 0.56, the same
-  // 224vh window the About box uses to fade in — instead of auto-playing on a
-  // fixed-duration CSS transition. maxLogoNavT only ever grows (see the rAF
-  // loop above), so once the logo has reached — or partly reached — the nav
-  // slot, scrolling back up doesn't pull it back toward center; it stays put.
+  // tied directly to scroll distance — its own short LOGO_NAV_VH window (see
+  // the rAF loop above), deliberately independent of the About-hold duration
+  // — instead of auto-playing on a fixed-duration CSS transition. maxLogoNavT
+  // only ever grows, so once the logo has reached — or partly reached — the
+  // nav slot, scrolling back up doesn't pull it back toward center; it stays put.
   // Deliberately NOT gated on isMovedToNav: that flag flips on a native event
   // listener while this is driven by the scroll-position rAF loop, and tying
   // this to a second, independently-updated flag is an unnecessary source of
@@ -1030,7 +1034,7 @@ export default function TubeLightLogo() {
             <div className="flex flex-col justify-between space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-b border-red-500/30 pb-3">
                 <h2 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
-                  ABOUT TEAM MATRIX
+                  About
                 </h2>
               </div>
               <p className="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-sans font-normal tracking-wide max-h-[45vh] lg:max-h-[360px] overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-red-500/40">
@@ -1043,40 +1047,12 @@ export default function TubeLightLogo() {
 
             {/* RIGHT HALF: 16:9 VIDEO PLAYBACK */}
             <div className="flex flex-col justify-between space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-y-1.5 border-b border-red-500/30 pb-3">
-                <h3 className="text-xs sm:text-sm md:text-base font-mono tracking-[0.08em] sm:tracking-[0.2em] text-red-400 font-bold uppercase whitespace-nowrap">
-                  <span className="sm:hidden">VIDEO STREAM</span>
-                  <span className="hidden sm:inline">TEAM MATRIX // VIDEO STREAM</span>
-                </h3>
-                <button
-                  onClick={toggleMute}
-                  className="text-[9px] sm:text-xs font-mono text-slate-300 hover:text-red-400 tracking-tight sm:tracking-wider flex items-center gap-1.5 bg-red-950/60 border border-red-500/40 px-2.5 sm:px-3 py-1 rounded-full transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  {isMuted ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                      </svg>
-                      MUTED
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                      </svg>
-                      UNMUTED
-                    </>
-                  )}
-                </button>
-              </div>
-
               {/* 16:9 Aspect Ratio Video Container */}
               <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-red-500/35 bg-black/90 group">
                 <video
                   ref={videoRef}
                   src="/tempfiles/about-video.mp4"
-                  muted={isMuted}
+                  muted
                   controls
                   preload="metadata"
                   playsInline

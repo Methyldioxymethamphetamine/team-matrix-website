@@ -22,8 +22,8 @@ const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffec
 // floor and render as a tiny, oddly-offset thumbnail with a lot of dead
 // space around it (reported on Android). Pick proportionally smaller props
 // on narrow viewports instead of relying on that floor to save it.
-const DESKTOP_CAROUSEL_PROPS = { cardWidth: 560, cardHeight: 360, radius: 48, depth: 100, spread: 260 };
-const MOBILE_CAROUSEL_PROPS = { cardWidth: 340, cardHeight: 220, radius: 28, depth: 60, spread: 60 };
+const DESKTOP_CAROUSEL_PROPS = { cardWidth: 672, cardHeight: 432, radius: 58, depth: 120, spread: 312 };
+const MOBILE_CAROUSEL_PROPS = { cardWidth: 408, cardHeight: 264, radius: 34, depth: 72, spread: 72 };
 
 function useIsDesktop(breakpointPx = 640) {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -75,7 +75,7 @@ function AchievementsShowcase({ variant = "pinned" }: AchievementsShowcaseProps)
       }`}
     >
       <Reveal>
-        <h2 className="relative font-[family-name:var(--font-black-ops)] text-3xl sm:text-4xl md:text-5xl font-normal text-white leading-tight text-center mb-2 sm:mb-3 px-4">
+        <h2 className="relative font-[family-name:var(--font-black-ops)] text-4xl sm:text-5xl md:text-6xl font-normal text-white leading-tight text-center mb-2 sm:mb-3 px-4">
           Achievements
         </h2>
       </Reveal>
@@ -84,11 +84,11 @@ function AchievementsShowcase({ variant = "pinned" }: AchievementsShowcaseProps)
           height is kept close to the card's own height (cardHeight above) rather than
           generously oversized — the difference is dead space split above and below the
           image, which is what made the heading feel far from the picture. Mobile keeps
-          ~40px of headroom beyond MOBILE_CAROUSEL_PROPS.cardHeight (220) since on wider
+          ~48px of headroom beyond MOBILE_CAROUSEL_PROPS.cardHeight (264) since on wider
           "mobile" widths (up to the 640px breakpoint) DepthCarousel's auto-scale can reach
-          1x, i.e. the full 220px card — with no headroom the image touched this box's
+          1x, i.e. the full 264px card — with no headroom the image touched this box's
           edges and got clipped by overflow-hidden. */}
-      <div className={`w-full overflow-hidden ${isDesktop ? "h-[400px] md:h-[420px]" : isFlow ? "h-[280px]" : "h-[260px]"}`}>
+      <div className={`w-full overflow-hidden ${isDesktop ? "h-[480px] md:h-[504px]" : isFlow ? "h-[336px]" : "h-[312px]"}`}>
         <DepthCarousel
           items={items}
           tilt={0}
@@ -111,7 +111,7 @@ function AchievementsShowcase({ variant = "pinned" }: AchievementsShowcaseProps)
             since the text swaps instantly with no property actually changing. */}
         <p
           key={activeIndex}
-          className="font-sans text-lg sm:text-2xl md:text-3xl text-white leading-snug"
+          className="font-mono tracking-wide text-lg sm:text-2xl md:text-3xl text-white leading-snug"
           style={{ animation: "fadeInUp 450ms cubic-bezier(0.16,1,0.3,1)" }}
         >
           {active.caption}
