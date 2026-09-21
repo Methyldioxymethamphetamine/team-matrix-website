@@ -75,7 +75,7 @@ function AchievementsShowcase({ variant = "pinned" }: AchievementsShowcaseProps)
       }`}
     >
       <Reveal>
-        <h2 className="relative font-[family-name:var(--font-black-ops)] text-4xl sm:text-5xl md:text-6xl font-normal text-white leading-tight text-center mb-2 sm:mb-3 px-4">
+        <h2 className="shiny-text relative font-[family-name:var(--font-black-ops)] text-6xl sm:text-7xl md:text-8xl font-normal leading-tight text-center mb-3 sm:mb-5 px-4">
           Achievements
         </h2>
       </Reveal>

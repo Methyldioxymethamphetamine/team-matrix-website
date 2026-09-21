@@ -397,11 +397,12 @@ export default function TubeLightLogo() {
     // run all of P/achievements/sponsors math and call ~6 setState functions
     // — forcing a full re-render of this whole component 60x/sec forever,
     // even while the page isn't actually scrolling at all. That's most
-    // visible (reported as "glitching") while wheel-scrolling through the
-    // Achievements carousel: DepthCarousel's own wheel handler calls
-    // preventDefault(), so window.scrollY never changes during that whole
-    // interaction, but this loop kept re-rendering the parent anyway,
-    // competing with DepthCarousel's GSAP tweens for the main thread. Skip
+    // visible (reported as "glitching") while horizontally wheel-scrolling
+    // through the Achievements carousel: DepthCarousel's own wheel handler
+    // calls preventDefault() on that gesture, so window.scrollY never
+    // changes during that whole interaction, but this loop kept
+    // re-rendering the parent anyway, competing with DepthCarousel's GSAP
+    // tweens for the main thread. Skip
     // everything below whenever neither the scroll position nor the
     // viewport size actually changed since the last frame.
     let lastScrollY = -1;

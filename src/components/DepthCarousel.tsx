@@ -280,13 +280,25 @@ export default function DepthCarousel({
     // notches to move a single card). A short lock after each trigger
     // absorbs the flurry of small events a single trackpad swipe or mouse
     // notch fires, so that whole gesture only ever counts as one step.
+    //
+    // Only a horizontal-dominant gesture (trackpad two-finger swipe left/
+    // right, or shift+wheel) is treated as carousel navigation — a plain
+    // vertical scroll/wheel is ignored here entirely (no preventDefault, no
+    // navigateBy) and passes straight through to the page. This component
+    // lives on a page that's driven end-to-end by vertical scroll position
+    // (pinned crossfade sections elsewhere in TubeLightLogo.tsx); previously
+    // ANY wheel input over this carousel — including plain vertical
+    // scrolling — called preventDefault() and hijacked it into a horizontal
+    // slide change, which silently froze the page's own scroll the moment
+    // the cursor was over this carousel.
     let locked = false;
     const onWheel = (e: WheelEvent) => {
       const cfg = cfgRef.current;
       if (cfg.count < 2) return;
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
       e.preventDefault();
       if (locked) return;
-      const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      const raw = e.deltaX;
       if (Math.abs(raw) < 1) return;
       locked = true;
       navigateBy(raw > 0 ? 1 : -1);
